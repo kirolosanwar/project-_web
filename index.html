@@ -4,22 +4,79 @@
 <meta charset="UTF-8">
 <title>Google Drive Explorer</title>
 
+<!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client"></script>
-<script src="https://apis.google.com/js/api.js"></script>
+
+<!-- Google API (IMPORTANT: onload) -->
+<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
 
 <style>
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f4f4f9; margin:0; padding:0; }
-header { background: #1a73e8; color: white; padding:15px; text-align:center; font-size:24px; font-weight:bold; }
-.container { max-width:900px; margin:20px auto; padding:10px; }
-.buttons { margin-bottom:20px; }
-button { background:#1a73e8; color:white; border:none; padding:10px 18px; border-radius:5px; margin-right:10px; cursor:pointer; font-size:16px; }
-button:hover { background:#155bb5; }
-.file-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:15px; }
-.card { background:white; padding:12px; border-radius:8px; box-shadow:0px 2px 5px rgba(0,0,0,0.1); text-align:center; cursor:pointer; transition: transform 0.2s, box-shadow 0.2s; }
-.card:hover { transform:translateY(-5px); box-shadow:0px 6px 15px rgba(0,0,0,0.2); }
-.folder-icon { font-size:40px; color:#fbbc04; }
-.file-icon { font-size:40px; color:#34a853; }
-.filename { margin-top:10px; font-weight:500; word-break:break-word; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background:#f4f4f9;
+    margin:0;
+    padding:0;
+}
+header {
+    background:#1a73e8;
+    color:white;
+    padding:15px;
+    text-align:center;
+    font-size:24px;
+    font-weight:bold;
+}
+.container {
+    max-width:900px;
+    margin:20px auto;
+    padding:10px;
+}
+.buttons {
+    margin-bottom:20px;
+}
+button {
+    background:#1a73e8;
+    color:white;
+    border:none;
+    padding:10px 18px;
+    border-radius:5px;
+    margin-right:10px;
+    cursor:pointer;
+    font-size:16px;
+}
+button:hover {
+    background:#155bb5;
+}
+.file-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:15px;
+}
+.card {
+    background:white;
+    padding:12px;
+    border-radius:8px;
+    box-shadow:0px 2px 5px rgba(0,0,0,0.1);
+    text-align:center;
+    cursor:pointer;
+    transition:transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+    transform:translateY(-5px);
+    box-shadow:0px 6px 15px rgba(0,0,0,0.2);
+}
+.folder-icon {
+    font-size:40px;
+    color:#fbbc04;
+}
+.file-icon {
+    font-size:40px;
+    color:#34a853;
+}
+.filename {
+    margin-top:10px;
+    font-weight:500;
+    word-break:break-word;
+}
 </style>
 </head>
 
@@ -29,8 +86,8 @@ button:hover { background:#155bb5; }
 
 <div class="container">
     <div class="buttons">
-        <button id="loginBtn" onclick="login()">Sign In</button>
-        <button id="logoutBtn" onclick="logout()" style="display:none;">Sign Out</button>
+        <button id="loginBtn">Sign In</button>
+        <button id="logoutBtn" style="display:none;">Sign Out</button>
         <button onclick="goBack()">🔙 Go Back</button>
     </div>
 
@@ -38,52 +95,61 @@ button:hover { background:#155bb5; }
 </div>
 
 <script>
-const CLIENT_ID = "418351745250-ik2vhfn07obkjl90o4r30f6ost6qduda.apps.googleusercontent.com";
+const CLIENT_ID = "418351745250-48015ia9v4rimop44nm3dshqmjr19c1o.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 
 let folderStack = ["root"];
-let tokenClient = null;
+let tokenClient;
 
-// Load GAPI
+// Called AFTER gapi.js loads
 function gapiLoaded() {
     gapi.load("client", async () => {
         await gapi.client.init({
             discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
         });
 
-        // Check if token exists in localStorage
         const savedToken = localStorage.getItem("gdrive_token");
         if (savedToken) {
             gapi.client.setToken({ access_token: savedToken });
-            loadFolder("root");
-            document.getElementById("loginBtn").style.display = "none";
-            document.getElementById("logoutBtn").style.display = "inline-block";
+            afterLogin();
         }
     });
 }
 
-// Sign in
-function login() {
+// Login
+document.getElementById("loginBtn").onclick = () => {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: (resp) => {
             if (resp.access_token) {
-                localStorage.setItem("gdrive_token", resp.access_token); // Save token
-                loadFolder("root");
-                document.getElementById("loginBtn").style.display = "none";
-                document.getElementById("logoutBtn").style.display = "inline-block";
+                localStorage.setItem("gdrive_token", resp.access_token);
+                gapi.client.setToken(resp);
+                afterLogin();
             }
         }
     });
     tokenClient.requestAccessToken();
+};
+
+// After successful login
+function afterLogin() {
+    document.getElementById("loginBtn").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "inline-block";
+    folderStack = ["root"];
+    loadFolder("root");
 }
 
-// Sign out
-function logout() {
+// Logout
+document.getElementById("logoutBtn").onclick = () => {
+    const token = gapi.client.getToken();
+    if (token) {
+        google.accounts.oauth2.revoke(token.access_token);
+        gapi.client.setToken("");
+    }
     localStorage.removeItem("gdrive_token");
     location.reload();
-}
+};
 
 // Load folder content
 async function loadFolder(folderId) {
@@ -96,13 +162,19 @@ async function loadFolder(folderId) {
         const container = document.getElementById("files");
         container.innerHTML = "";
 
+        if (res.result.files.length === 0) {
+            container.innerHTML = "<p>No files found</p>";
+            return;
+        }
+
         res.result.files.forEach(file => {
             const card = document.createElement("div");
             card.className = "card";
 
             const icon = document.createElement("div");
-            icon.className = file.mimeType === "application/vnd.google-apps.folder" ? "folder-icon" : "file-icon";
-            icon.textContent = file.mimeType === "application/vnd.google-apps.folder" ? "📁" : "📄";
+            const isFolder = file.mimeType === "application/vnd.google-apps.folder";
+            icon.className = isFolder ? "folder-icon" : "file-icon";
+            icon.textContent = isFolder ? "📁" : "📄";
 
             const name = document.createElement("div");
             name.className = "filename";
@@ -111,37 +183,36 @@ async function loadFolder(folderId) {
             card.appendChild(icon);
             card.appendChild(name);
 
-            if (file.mimeType === "application/vnd.google-apps.folder") {
+            if (isFolder) {
                 card.onclick = () => {
                     folderStack.push(file.id);
                     loadFolder(file.id);
                 };
             } else {
                 card.onclick = () => {
-                    const url = `https://drive.google.com/file/d/${file.id}/view`;
-                    window.open(url, "_blank");
+                    window.open(
+                        `https://drive.google.com/file/d/${file.id}/view`,
+                        "_blank"
+                    );
                 };
             }
 
             container.appendChild(card);
         });
 
-    } catch (error) {
-        console.error("Error loading files:", error);
-        alert("Error loading files. Please make sure you are signed in correctly.");
+    } catch (err) {
+        console.error(err);
+        alert("Error loading files. Please sign in again.");
     }
 }
 
-// Go back button
+// Go back
 function goBack() {
     if (folderStack.length > 1) {
         folderStack.pop();
         loadFolder(folderStack[folderStack.length - 1]);
     }
 }
-
-// Initialize
-gapiLoaded();
 </script>
 
 </body>
