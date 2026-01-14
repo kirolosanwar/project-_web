@@ -1,380 +1,1033 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Google Drive Explorer</title>
-
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client"></script>
-
-<!-- Google API (IMPORTANT: onload) -->
-<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
-
-<style>
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background:#f4f4f9;
-    margin:0;
-    padding:0;
-}
-header {
-    background:#1a73e8;
-    color:white;
-    padding:15px;
-    text-align:center;
-    font-size:24px;
-    font-weight:bold;
-}
-.container {
-    max-width:900px;
-    margin:20px auto;
-    padding:10px;
-}
-.buttons {
-    margin-bottom:20px;
-}
-button {
-    background:#1a73e8;
-    color:white;
-    border:none;
-    padding:10px 18px;
-    border-radius:5px;
-    margin-right:10px;
-    cursor:pointer;
-    font-size:16px;
-}
-button:hover {
-    background:#155bb5;
-}
-.file-grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-    gap:15px;
-}
-.card {
-    background:white;
-    padding:12px;
-    border-radius:8px;
-    box-shadow:0px 2px 5px rgba(0,0,0,0.1);
-    text-align:center;
-    cursor:pointer;
-    transition:transform 0.2s, box-shadow 0.2s;
-    position:relative;
-}
-.card:hover {
-    transform:translateY(-5px);
-    box-shadow:0px 6px 15px rgba(0,0,0,0.2);
-}
-.folder-icon {
-    font-size:40px;
-    color:#fbbc04;
-}
-.file-icon {
-    font-size:40px;
-    color:#34a853;
-}
-.excel-icon {
-    font-size:40px;
-    color:#0f9d58;
-}
-.filename {
-    margin-top:10px;
-    font-weight:500;
-    word-break:break-word;
-}
-.excel-btn {
-    background:#0f9d58;
-    margin-top:5px;
-    padding:5px 10px;
-    font-size:12px;
-}
-.excel-btn:hover {
-    background:#0b8043;
-}
-
-/* جدول البيانات */
-.table-container {
-    margin-top:30px;
-    background:white;
-    border-radius:8px;
-    box-shadow:0px 2px 10px rgba(0,0,0,0.1);
-    padding:20px;
-    overflow-x:auto;
-}
-table {
-    width:100%;
-    border-collapse:collapse;
-}
-th, td {
-    padding:12px;
-    text-align:left;
-    border-bottom:1px solid #ddd;
-}
-th {
-    background:#f1f1f1;
-    font-weight:600;
-}
-tr:hover {
-    background:#f9f9f9;
-}
-.loading {
-    text-align:center;
-    padding:20px;
-    color:#666;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Explorer - Professional</title>
+    
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client"></script>
+    
+    <!-- Google API -->
+    <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #0f9d58;
+            --danger-color: #d93025;
+            --light-color: #f8f9fa;
+            --dark-color: #202124;
+            --gray-color: #5f6368;
+            --border-color: #dadce0;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        .navbar {
+            background: white;
+            box-shadow: var(--shadow);
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            color: var(--primary-color);
+            font-size: 28px;
+        }
+        
+        .logo-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        
+        /* Toolbar */
+        .toolbar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #155bb5;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .btn-secondary {
+            background: #f1f3f4;
+            color: var(--dark-color);
+        }
+        
+        .btn-secondary:hover {
+            background: #e8eaed;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+        
+        .btn-success {
+            background: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #0b8043;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-left: auto;
+        }
+        
+        .breadcrumb-item {
+            color: var(--gray-color);
+            font-size: 14px;
+        }
+        
+        .breadcrumb-item.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        /* File Grid */
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 2rem;
+        }
+        
+        .file-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .file-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--primary-color);
+        }
+        
+        .file-icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+        
+        .folder-icon {
+            color: #fbbc04;
+        }
+        
+        .spreadsheet-icon {
+            color: var(--secondary-color);
+        }
+        
+        .file-icon {
+            color: #34a853;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+        
+        .file-type {
+            font-size: 12px;
+            color: var(--gray-color);
+            background: #f1f3f4;
+            padding: 3px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        
+        .file-actions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* Spreadsheet Table */
+        .spreadsheet-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-top: 2rem;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .spreadsheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .spreadsheet-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .sheet-tabs {
+            display: flex;
+            gap: 5px;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .sheet-tab {
+            padding: 0.5rem 1rem;
+            background: #f1f3f4;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .sheet-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .sheet-tab:hover:not(.active) {
+            background: #e8eaed;
+        }
+        
+        .columns-header {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .columns-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+        
+        .columns-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .column-badge {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .column-index {
+            background: var(--primary-color);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .data-table th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark-color);
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+        }
+        
+        .data-table td {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+        
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            color: #dadce0;
+            margin-bottom: 1.5rem;
+        }
+        
+        .empty-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+        
+        .empty-message {
+            color: var(--gray-color);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.8rem 1rem;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .breadcrumb {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+            
+            .file-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .spreadsheet-container {
+                padding: 1rem;
+            }
+            
+            .data-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
 </head>
-
 <body>
-
-<header>📁 Google Drive Explorer</header>
-
-<div class="container">
-    <div class="buttons">
-        <button id="loginBtn">Sign In</button>
-        <button id="logoutBtn" style="display:none;">Sign Out</button>
-        <button onclick="goBack()">🔙 Go Back</button>
-        <button onclick="closeTable()" id="closeTableBtn" style="display:none; background:#d93025;">Close Table</button>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-cloud-upload-alt logo-icon"></i>
+            <span class="logo-text">Drive Explorer Pro</span>
+        </div>
+        
+        <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <button class="btn btn-secondary" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Sign Out
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="btn btn-primary" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i> Sign In with Google
+            </button>
+            
+            <button class="btn btn-secondary" onclick="goBack()" id="backBtn">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            
+            <button class="btn btn-danger" onclick="closeSpreadsheet()" id="closeSpreadsheetBtn" style="display: none;">
+                <i class="fas fa-times"></i> Close Spreadsheet
+            </button>
+            
+            <div class="breadcrumb" id="breadcrumb">
+                <span class="breadcrumb-item"><i class="fas fa-home"></i> Drive</span>
+            </div>
+        </div>
+        
+        <!-- Files Grid -->
+        <div id="files" class="file-grid"></div>
+        
+        <!-- Spreadsheet View -->
+        <div id="spreadsheetContainer" class="spreadsheet-container" style="display: none;"></div>
+        
+        <!-- Empty State (Initially shown) -->
+        <div id="emptyState" class="empty-state">
+            <i class="fas fa-cloud empty-icon"></i>
+            <h2 class="empty-title">Welcome to Drive Explorer Pro</h2>
+            <p class="empty-message">
+                Sign in with your Google account to browse and explore your Google Drive files. 
+                View Excel/Google Sheets files directly as interactive tables with column names.
+            </p>
+            <button class="btn btn-primary" id="emptyLoginBtn" style="margin-top: 1.5rem;">
+                <i class="fas fa-sign-in-alt"></i> Sign In to Get Started
+            </button>
+        </div>
     </div>
 
-    <div id="files" class="file-grid"></div>
-    
-    <div id="tableContainer" class="table-container" style="display:none;"></div>
-</div>
-
-<script>
-const CLIENT_ID = "418351745250-48015ia9v4rimop44nm3dshqmjr19c1o.apps.googleusercontent.com";
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
-const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
-const SCOPES = `${DRIVE_SCOPE} ${SHEETS_SCOPE}`;
-
-let folderStack = ["root"];
-let tokenClient;
-let currentSpreadsheetId = null;
-
-// Called AFTER gapi.js loads
-function gapiLoaded() {
-    gapi.load("client", async () => {
-        await gapi.client.init({
-            apiKey: '',
-            discoveryDocs: [
-                "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
-                "https://sheets.googleapis.com/$discovery/rest?version=v4"
-            ]
-        });
-
-        const savedToken = localStorage.getItem("gdrive_token");
-        if (savedToken) {
-            gapi.client.setToken({ access_token: savedToken });
-            afterLogin();
+    <script>
+        const CLIENT_ID = "418351745250-48015ia9v4rimop44nm3dshqmjr19c1o.apps.googleusercontent.com";
+        const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+        const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+        const SCOPES = `${DRIVE_SCOPE} ${SHEETS_SCOPE}`;
+        
+        let folderStack = ["root"];
+        let folderNames = ["My Drive"];
+        let tokenClient;
+        let currentSpreadsheet = null;
+        
+        // Initialize Google API
+        function gapiLoaded() {
+            gapi.load("client", async () => {
+                await gapi.client.init({
+                    apiKey: '',
+                    discoveryDocs: [
+                        "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+                        "https://sheets.googleapis.com/$discovery/rest?version=v4"
+                    ]
+                });
+                
+                const savedToken = localStorage.getItem("gdrive_token");
+                if (savedToken) {
+                    gapi.client.setToken({ access_token: savedToken });
+                    afterLogin();
+                }
+            });
         }
-    });
-}
-
-// Login
-document.getElementById("loginBtn").onclick = () => {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: (resp) => {
-            if (resp.access_token) {
-                localStorage.setItem("gdrive_token", resp.access_token);
-                gapi.client.setToken(resp);
-                afterLogin();
+        
+        // Login
+        document.getElementById("loginBtn").onclick = signIn;
+        document.getElementById("emptyLoginBtn").onclick = signIn;
+        
+        function signIn() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (resp) => {
+                    if (resp.access_token) {
+                        localStorage.setItem("gdrive_token", resp.access_token);
+                        gapi.client.setToken(resp);
+                        afterLogin();
+                    }
+                },
+                error_callback: (error) => {
+                    console.error("OAuth error:", error);
+                    if (error.type === "access_denied") {
+                        alert("Access denied. Please make sure you're added as a test user or the app is published.");
+                    }
+                }
+            });
+            tokenClient.requestAccessToken();
+        }
+        
+        // After successful login
+        async function afterLogin() {
+            // Hide login button, show user info
+            document.getElementById("loginBtn").style.display = "none";
+            document.getElementById("emptyLoginBtn").style.display = "none";
+            document.getElementById("userInfo").style.display = "flex";
+            document.getElementById("emptyState").style.display = "none";
+            
+            // Get user info
+            try {
+                const userInfo = await gapi.client.drive.about.get({
+                    fields: "user"
+                });
+                const userName = userInfo.result.user.displayName;
+                const userEmail = userInfo.result.user.emailAddress;
+                
+                document.getElementById("userAvatar").textContent = userName.charAt(0).toUpperCase();
+                document.getElementById("userAvatar").title = `${userName}\n${userEmail}`;
+                
+            } catch (error) {
+                console.error("Error fetching user info:", error);
+            }
+            
+            // Load root folder
+            folderStack = ["root"];
+            folderNames = ["My Drive"];
+            updateBreadcrumb();
+            loadFolder("root");
+        }
+        
+        // Logout
+        document.getElementById("logoutBtn").onclick = () => {
+            const token = gapi.client.getToken();
+            if (token) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken("");
+            }
+            localStorage.removeItem("gdrive_token");
+            location.reload();
+        };
+        
+        // Update breadcrumb navigation
+        function updateBreadcrumb() {
+            const breadcrumb = document.getElementById("breadcrumb");
+            breadcrumb.innerHTML = '';
+            
+            folderNames.forEach((name, index) => {
+                const span = document.createElement("span");
+                span.className = `breadcrumb-item ${index === folderNames.length - 1 ? 'active' : ''}`;
+                span.textContent = name;
+                
+                if (index < folderNames.length - 1) {
+                    span.style.cursor = "pointer";
+                    span.onclick = () => {
+                        // Go back to this folder
+                        folderStack = folderStack.slice(0, index + 1);
+                        folderNames = folderNames.slice(0, index + 1);
+                        updateBreadcrumb();
+                        loadFolder(folderStack[folderStack.length - 1]);
+                    };
+                }
+                
+                breadcrumb.appendChild(span);
+                
+                if (index < folderNames.length - 1) {
+                    const separator = document.createElement("i");
+                    separator.className = "fas fa-chevron-right";
+                    separator.style.margin = "0 8px";
+                    separator.style.color = "#dadce0";
+                    breadcrumb.appendChild(separator);
+                }
+            });
+        }
+        
+        // Load folder content
+        async function loadFolder(folderId) {
+            try {
+                document.getElementById("files").innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading files...</p>
+                    </div>
+                `;
+                
+                const res = await gapi.client.drive.files.list({
+                    q: `'${folderId}' in parents and trashed = false`,
+                    fields: "files(id, name, mimeType, modifiedTime, size)",
+                    orderBy: "folder, name",
+                    pageSize: 100
+                });
+                
+                const container = document.getElementById("files");
+                
+                if (!res.result.files || res.result.files.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open empty-icon"></i>
+                            <h2 class="empty-title">Empty Folder</h2>
+                            <p class="empty-message">This folder doesn't contain any files or subfolders.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                // Separate folders and files
+                const folders = res.result.files.filter(file => file.mimeType === "application/vnd.google-apps.folder");
+                const files = res.result.files.filter(file => file.mimeType !== "application/vnd.google-apps.folder");
+                
+                // Display folders first
+                folders.forEach(file => {
+                    createFileCard(file, true);
+                });
+                
+                // Display files
+                files.forEach(file => {
+                    createFileCard(file, false);
+                });
+                
+                // Hide spreadsheet view
+                document.getElementById("spreadsheetContainer").style.display = "none";
+                document.getElementById("closeSpreadsheetBtn").style.display = "none";
+                
+            } catch (err) {
+                console.error(err);
+                document.getElementById("files").innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle empty-icon"></i>
+                        <h2 class="empty-title">Error Loading Files</h2>
+                        <p class="empty-message">${err.message || "Please try signing in again."}</p>
+                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1.5rem;">
+                            <i class="fas fa-redo"></i> Reload Page
+                        </button>
+                    </div>
+                `;
             }
         }
-    });
-    tokenClient.requestAccessToken();
-};
-
-// After successful login
-function afterLogin() {
-    document.getElementById("loginBtn").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "inline-block";
-    folderStack = ["root"];
-    loadFolder("root");
-}
-
-// Logout
-document.getElementById("logoutBtn").onclick = () => {
-    const token = gapi.client.getToken();
-    if (token) {
-        google.accounts.oauth2.revoke(token.access_token);
-        gapi.client.setToken("");
-    }
-    localStorage.removeItem("gdrive_token");
-    location.reload();
-};
-
-// Load folder content
-async function loadFolder(folderId) {
-    try {
-        const res = await gapi.client.drive.files.list({
-            q: `'${folderId}' in parents and trashed = false`,
-            fields: "files(id, name, mimeType, iconLink)"
-        });
-
-        const container = document.getElementById("files");
-        container.innerHTML = "";
-
-        if (res.result.files.length === 0) {
-            container.innerHTML = "<p>No files found</p>";
-            return;
-        }
-
-        res.result.files.forEach(file => {
-            const card = document.createElement("div");
-            card.className = "card";
-
-            const icon = document.createElement("div");
-            const isFolder = file.mimeType === "application/vnd.google-apps.folder";
+        
+        // Create file card
+        function createFileCard(file, isFolder) {
+            const container = document.getElementById("files");
             const isSpreadsheet = file.mimeType === "application/vnd.google-apps.spreadsheet";
             
+            const card = document.createElement("div");
+            card.className = "file-card";
+            
+            // File icon
+            const icon = document.createElement("div");
             if (isFolder) {
-                icon.className = "folder-icon";
-                icon.textContent = "📁";
+                icon.className = "file-icon folder-icon";
+                icon.innerHTML = '<i class="fas fa-folder"></i>';
             } else if (isSpreadsheet) {
-                icon.className = "excel-icon";
-                icon.textContent = "📊";
+                icon.className = "file-icon spreadsheet-icon";
+                icon.innerHTML = '<i class="fas fa-table"></i>';
             } else {
                 icon.className = "file-icon";
-                icon.textContent = "📄";
+                icon.innerHTML = '<i class="fas fa-file"></i>';
             }
-
+            
+            // File name
             const name = document.createElement("div");
-            name.className = "filename";
-            name.textContent = file.name;
-
-            card.appendChild(icon);
-            card.appendChild(name);
-
+            name.className = "file-name";
+            name.textContent = file.name.length > 30 ? file.name.substring(0, 30) + "..." : file.name;
+            name.title = file.name;
+            
+            // File type badge
+            const type = document.createElement("div");
+            type.className = "file-type";
+            if (isFolder) {
+                type.textContent = "Folder";
+            } else if (isSpreadsheet) {
+                type.textContent = "Spreadsheet";
+            } else {
+                const mimeParts = file.mimeType.split('/');
+                type.textContent = mimeParts.length > 1 ? mimeParts[1].toUpperCase() : "File";
+            }
+            
+            // File actions
+            const actions = document.createElement("div");
+            actions.className = "file-actions";
+            
             if (isFolder) {
                 card.onclick = () => {
                     folderStack.push(file.id);
+                    folderNames.push(file.name);
+                    updateBreadcrumb();
                     loadFolder(file.id);
                 };
             } else if (isSpreadsheet) {
-                // إضافة زر لفتح الجدول
-                const excelBtn = document.createElement("button");
-                excelBtn.className = "excel-btn";
-                excelBtn.textContent = "Open as Table";
-                excelBtn.onclick = (e) => {
+                // Add view spreadsheet button
+                const viewBtn = document.createElement("button");
+                viewBtn.className = "action-btn btn-success";
+                viewBtn.innerHTML = '<i class="fas fa-table"></i> View';
+                viewBtn.onclick = (e) => {
                     e.stopPropagation();
                     loadSpreadsheet(file.id, file.name);
                 };
-                card.appendChild(excelBtn);
+                actions.appendChild(viewBtn);
                 
-                // الضغط على الكارد يفتح في Google Sheets
-                card.onclick = () => {
-                    window.open(
-                        `https://docs.google.com/spreadsheets/d/${file.id}/edit`,
-                        "_blank"
-                    );
+                // Add open in new tab button
+                const openBtn = document.createElement("button");
+                openBtn.className = "action-btn btn-secondary";
+                openBtn.innerHTML = '<i class="fas fa-external-link-alt"></i> Open';
+                openBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.open(`https://docs.google.com/spreadsheets/d/${file.id}/edit`, "_blank");
                 };
+                actions.appendChild(openBtn);
+                
+                card.onclick = () => loadSpreadsheet(file.id, file.name);
             } else {
                 card.onclick = () => {
-                    window.open(
-                        `https://drive.google.com/file/d/${file.id}/view`,
-                        "_blank"
-                    );
+                    window.open(`https://drive.google.com/file/d/${file.id}/view`, "_blank");
                 };
             }
-
+            
+            card.appendChild(icon);
+            card.appendChild(name);
+            card.appendChild(type);
+            card.appendChild(actions);
+            
             container.appendChild(card);
-        });
-
-    } catch (err) {
-        console.error(err);
-        alert("Error loading files. Please sign in again.");
-    }
-}
-
-// تحميل وعرض جدول Excel
-async function loadSpreadsheet(spreadsheetId, spreadsheetName) {
-    try {
-        const container = document.getElementById("tableContainer");
-        container.style.display = "block";
-        container.innerHTML = `<div class="loading">Loading spreadsheet: ${spreadsheetName}...</div>`;
-        
-        document.getElementById("closeTableBtn").style.display = "inline-block";
-        
-        // الحصول على معلومات عن الصفحات (Sheets)
-        const spreadsheet = await gapi.client.sheets.spreadsheets.get({
-            spreadsheetId: spreadsheetId
-        });
-        
-        // استخدام أول صفحة (Sheet) في الملف
-        const sheetName = spreadsheet.result.sheets[0].properties.title;
-        
-        // الحصول على البيانات من الصفحة
-        const rangeResponse = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: spreadsheetId,
-            range: sheetName
-        });
-        
-        const values = rangeResponse.result.values;
-        
-        if (!values || values.length === 0) {
-            container.innerHTML = `<h3>${spreadsheetName}</h3><p>No data found in the spreadsheet.</p>`;
-            return;
         }
         
-        // إنشاء الجدول
-        let tableHTML = `<h3>📊 ${spreadsheetName} - ${sheetName}</h3>`;
-        tableHTML += `<table>`;
-        
-        // الصف الأول كعناوين (headers)
-        tableHTML += `<thead><tr>`;
-        if (values[0]) {
-            values[0].forEach(cell => {
-                tableHTML += `<th>${cell || ''}</th>`;
-            });
-        }
-        tableHTML += `</tr></thead>`;
-        
-        // بقية الصفوف كبيانات
-        tableHTML += `<tbody>`;
-        for (let i = 1; i < values.length; i++) {
-            tableHTML += `<tr>`;
-            values[i].forEach(cell => {
-                tableHTML += `<td>${cell || ''}</td>`;
-            });
-            // إضافة خلايا فارغة إذا كان الصف غير مكتمل
-            if (values[i].length < values[0].length) {
-                for (let j = values[i].length; j < values[0].length; j++) {
-                    tableHTML += `<td></td>`;
-                }
+        // Load and display spreadsheet
+        async function loadSpreadsheet(spreadsheetId, spreadsheetName) {
+            try {
+                document.getElementById("files").innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading spreadsheet data...</p>
+                    </div>
+                `;
+                
+                document.getElementById("closeSpreadsheetBtn").style.display = "inline-block";
+                
+                const container = document.getElementById("spreadsheetContainer");
+                container.style.display = "block";
+                container.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading "${spreadsheetName}"...</p>
+                    </div>
+                `;
+                
+                // Get spreadsheet info
+                const spreadsheet = await gapi.client.sheets.spreadsheets.get({
+                    spreadsheetId: spreadsheetId
+                });
+                
+                currentSpreadsheet = {
+                    id: spreadsheetId,
+                    name: spreadsheetName,
+                    sheets: spreadsheet.result.sheets.map(sheet => ({
+                        id: sheet.properties.sheetId,
+                        name: sheet.properties.title,
+                        index: sheet.properties.index
+                    }))
+                };
+                
+                // Load first sheet by default
+                await loadSheet(currentSpreadsheet.sheets[0].name);
+                
+                // Create sheet tabs
+                createSheetTabs();
+                
+            } catch (err) {
+                console.error("Error loading spreadsheet:", err);
+                document.getElementById("spreadsheetContainer").innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle empty-icon"></i>
+                        <h2 class="empty-title">Error Loading Spreadsheet</h2>
+                        <p class="empty-message">${err.message || "Unable to load the spreadsheet data."}</p>
+                    </div>
+                `;
             }
-            tableHTML += `</tr>`;
         }
-        tableHTML += `</tbody></table>`;
         
-        container.innerHTML = tableHTML;
-        currentSpreadsheetId = spreadsheetId;
+        // Load specific sheet
+        async function loadSheet(sheetName) {
+            try {
+                const container = document.getElementById("spreadsheetContainer");
+                container.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading "${sheetName}" sheet...</p>
+                    </div>
+                `;
+                
+                // Get sheet data
+                const rangeResponse = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: currentSpreadsheet.id,
+                    range: sheetName
+                });
+                
+                const values = rangeResponse.result.values || [];
+                
+                if (values.length === 0) {
+                    container.innerHTML = `
+                        <div class="spreadsheet-header">
+                            <div class="spreadsheet-title">
+                                <i class="fas fa-table" style="color: var(--secondary-color); font-size: 24px;"></i>
+                                <div>
+                                    <h2>${currentSpreadsheet.name}</h2>
+                                    <p style="color: var(--gray-color); font-size: 14px;">Sheet: ${sheetName}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="empty-state">
+                            <i class="fas fa-table empty-icon"></i>
+                            <h2 class="empty-title">Empty Sheet</h2>
+                            <p class="empty-message">This sheet doesn't contain any data.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Extract column names (first row)
+                const columnNames = values[0] || [];
+                
+                // Build the spreadsheet view
+                let html = `
+                    <div class="spreadsheet-header">
+                        <div class="spreadsheet-title">
+                            <i class="fas fa-table" style="color: var(--secondary-color); font-size: 24px;"></i>
+                            <div>
+                                <h2>${currentSpreadsheet.name}</h2>
+                                <p style="color: var(--gray-color); font-size: 14px;">Sheet: ${sheetName}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="file-type" style="background: var(--secondary-color); color: white;">
+                                ${values.length - 1} rows, ${columnNames.length} columns
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                // Display column names
+                html += `
+                    <div class="columns-header">
+                        <h3 class="columns-title">Column Names</h3>
+                        <div class="columns-list">
+                `;
+                
+                columnNames.forEach((colName, index) => {
+                    html += `
+                        <div class="column-badge">
+                            <span class="column-index">${index + 1}</span>
+                            <span>${colName || `Column ${index + 1}`}</span>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+                
+                // Create table
+                html += `<div style="overflow-x: auto;"><table class="data-table">`;
+                
+                // Table headers (column names)
+                html += `<thead><tr>`;
+                columnNames.forEach(colName => {
+                    html += `<th>${colName || ""}</th>`;
+                });
+                html += `</tr></thead>`;
+                
+                // Table body (data rows)
+                html += `<tbody>`;
+                for (let i = 1; i < values.length; i++) {
+                    html += `<tr>`;
+                    const row = values[i];
+                    
+                    // Fill all columns
+                    for (let j = 0; j < columnNames.length; j++) {
+                        const cellValue = row && j < row.length ? row[j] : "";
+                        html += `<td>${cellValue}</td>`;
+                    }
+                    
+                    html += `</tr>`;
+                }
+                html += `</tbody></table></div>`;
+                
+                container.innerHTML = html;
+                
+            } catch (err) {
+                console.error("Error loading sheet:", err);
+                document.getElementById("spreadsheetContainer").innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle empty-icon"></i>
+                        <h2 class="empty-title">Error Loading Sheet</h2>
+                        <p class="empty-message">${err.message || "Unable to load sheet data."}</p>
+                    </div>
+                `;
+            }
+        }
         
-    } catch (err) {
-        console.error("Error loading spreadsheet:", err);
-        document.getElementById("tableContainer").innerHTML = 
-            `<div class="loading">Error loading spreadsheet: ${err.message}</div>`;
-    }
-}
-
-// إغلاق الجدول
-function closeTable() {
-    document.getElementById("tableContainer").style.display = "none";
-    document.getElementById("closeTableBtn").style.display = "none";
-    currentSpreadsheetId = null;
-}
-
-// Go back
-function goBack() {
-    if (folderStack.length > 1) {
-        folderStack.pop();
-        loadFolder(folderStack[folderStack.length - 1]);
-    }
-    closeTable();
-}
-</script>
-
+        // Create sheet tabs
+        function createSheetTabs() {
+            if (!currentSpreadsheet || currentSpreadsheet.sheets.length <= 1) return;
+            
+            const container = document.getElementById("spreadsheetContainer");
+            const header = container.querySelector(".spreadsheet-header");
+            
+            if (!header) return;
+            
+            const sheetTabs = document.createElement("div");
+            sheetTabs.className = "sheet-tabs";
+            
+            currentSpreadsheet.sheets.forEach((sheet, index) => {
+                const tab = document.createElement("div");
+                tab.className = `sheet-tab ${index === 0 ? "active" : ""}`;
+                tab.textContent = sheet.name;
+                tab.onclick = () => {
+                    // Update active tab
+                    document.querySelectorAll(".sheet-tab").forEach(t => t.classList.remove("active"));
+                    tab.classList.add("active");
+                    
+                    // Load the selected sheet
+                    loadSheet(sheet.name);
+                };
+                
+                sheetTabs.appendChild(tab);
+            });
+            
+            header.parentNode.insertBefore(sheetTabs, header.nextSibling);
+        }
+        
+        // Close spreadsheet view
+        function closeSpreadsheet() {
+            document.getElementById("spreadsheetContainer").style.display = "none";
+            document.getElementById("closeSpreadsheetBtn").style.display = "none";
+            currentSpreadsheet = null;
+            
+            // Reload current folder
+            loadFolder(folderStack[folderStack.length - 1]);
+        }
+        
+        // Go back in folder navigation
+        function goBack() {
+            if (folderStack.length > 1) {
+                folderStack.pop();
+                folderNames.pop();
+                updateBreadcrumb();
+                loadFolder(folderStack[folderStack.length - 1]);
+                closeSpreadsheet();
+            }
+        }
+    </script>
 </body>
 </html>
