@@ -59,6 +59,7 @@ button:hover {
     text-align:center;
     cursor:pointer;
     transition:transform 0.2s, box-shadow 0.2s;
+    position:relative;
 }
 .card:hover {
     transform:translateY(-5px);
@@ -72,10 +73,54 @@ button:hover {
     font-size:40px;
     color:#34a853;
 }
+.excel-icon {
+    font-size:40px;
+    color:#0f9d58;
+}
 .filename {
     margin-top:10px;
     font-weight:500;
     word-break:break-word;
+}
+.excel-btn {
+    background:#0f9d58;
+    margin-top:5px;
+    padding:5px 10px;
+    font-size:12px;
+}
+.excel-btn:hover {
+    background:#0b8043;
+}
+
+/* جدول البيانات */
+.table-container {
+    margin-top:30px;
+    background:white;
+    border-radius:8px;
+    box-shadow:0px 2px 10px rgba(0,0,0,0.1);
+    padding:20px;
+    overflow-x:auto;
+}
+table {
+    width:100%;
+    border-collapse:collapse;
+}
+th, td {
+    padding:12px;
+    text-align:left;
+    border-bottom:1px solid #ddd;
+}
+th {
+    background:#f1f1f1;
+    font-weight:600;
+}
+tr:hover {
+    background:#f9f9f9;
+}
+.loading {
+    text-align:center;
+    padding:20px;
+    color:#666;
 }
 </style>
 </head>
@@ -89,23 +134,33 @@ button:hover {
         <button id="loginBtn">Sign In</button>
         <button id="logoutBtn" style="display:none;">Sign Out</button>
         <button onclick="goBack()">🔙 Go Back</button>
+        <button onclick="closeTable()" id="closeTableBtn" style="display:none; background:#d93025;">Close Table</button>
     </div>
 
     <div id="files" class="file-grid"></div>
+    
+    <div id="tableContainer" class="table-container" style="display:none;"></div>
 </div>
 
 <script>
 const CLIENT_ID = "418351745250-48015ia9v4rimop44nm3dshqmjr19c1o.apps.googleusercontent.com";
-const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const SCOPES = `${DRIVE_SCOPE} ${SHEETS_SCOPE}`;
 
 let folderStack = ["root"];
 let tokenClient;
+let currentSpreadsheetId = null;
 
 // Called AFTER gapi.js loads
 function gapiLoaded() {
     gapi.load("client", async () => {
         await gapi.client.init({
-            discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+            apiKey: '',
+            discoveryDocs: [
+                "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+                "https://sheets.googleapis.com/$discovery/rest?version=v4"
+            ]
         });
 
         const savedToken = localStorage.getItem("gdrive_token");
@@ -156,7 +211,7 @@ async function loadFolder(folderId) {
     try {
         const res = await gapi.client.drive.files.list({
             q: `'${folderId}' in parents and trashed = false`,
-            fields: "files(id, name, mimeType)"
+            fields: "files(id, name, mimeType, iconLink)"
         });
 
         const container = document.getElementById("files");
@@ -173,8 +228,18 @@ async function loadFolder(folderId) {
 
             const icon = document.createElement("div");
             const isFolder = file.mimeType === "application/vnd.google-apps.folder";
-            icon.className = isFolder ? "folder-icon" : "file-icon";
-            icon.textContent = isFolder ? "📁" : "📄";
+            const isSpreadsheet = file.mimeType === "application/vnd.google-apps.spreadsheet";
+            
+            if (isFolder) {
+                icon.className = "folder-icon";
+                icon.textContent = "📁";
+            } else if (isSpreadsheet) {
+                icon.className = "excel-icon";
+                icon.textContent = "📊";
+            } else {
+                icon.className = "file-icon";
+                icon.textContent = "📄";
+            }
 
             const name = document.createElement("div");
             name.className = "filename";
@@ -187,6 +252,24 @@ async function loadFolder(folderId) {
                 card.onclick = () => {
                     folderStack.push(file.id);
                     loadFolder(file.id);
+                };
+            } else if (isSpreadsheet) {
+                // إضافة زر لفتح الجدول
+                const excelBtn = document.createElement("button");
+                excelBtn.className = "excel-btn";
+                excelBtn.textContent = "Open as Table";
+                excelBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    loadSpreadsheet(file.id, file.name);
+                };
+                card.appendChild(excelBtn);
+                
+                // الضغط على الكارد يفتح في Google Sheets
+                card.onclick = () => {
+                    window.open(
+                        `https://docs.google.com/spreadsheets/d/${file.id}/edit`,
+                        "_blank"
+                    );
                 };
             } else {
                 card.onclick = () => {
@@ -206,12 +289,90 @@ async function loadFolder(folderId) {
     }
 }
 
+// تحميل وعرض جدول Excel
+async function loadSpreadsheet(spreadsheetId, spreadsheetName) {
+    try {
+        const container = document.getElementById("tableContainer");
+        container.style.display = "block";
+        container.innerHTML = `<div class="loading">Loading spreadsheet: ${spreadsheetName}...</div>`;
+        
+        document.getElementById("closeTableBtn").style.display = "inline-block";
+        
+        // الحصول على معلومات عن الصفحات (Sheets)
+        const spreadsheet = await gapi.client.sheets.spreadsheets.get({
+            spreadsheetId: spreadsheetId
+        });
+        
+        // استخدام أول صفحة (Sheet) في الملف
+        const sheetName = spreadsheet.result.sheets[0].properties.title;
+        
+        // الحصول على البيانات من الصفحة
+        const rangeResponse = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: spreadsheetId,
+            range: sheetName
+        });
+        
+        const values = rangeResponse.result.values;
+        
+        if (!values || values.length === 0) {
+            container.innerHTML = `<h3>${spreadsheetName}</h3><p>No data found in the spreadsheet.</p>`;
+            return;
+        }
+        
+        // إنشاء الجدول
+        let tableHTML = `<h3>📊 ${spreadsheetName} - ${sheetName}</h3>`;
+        tableHTML += `<table>`;
+        
+        // الصف الأول كعناوين (headers)
+        tableHTML += `<thead><tr>`;
+        if (values[0]) {
+            values[0].forEach(cell => {
+                tableHTML += `<th>${cell || ''}</th>`;
+            });
+        }
+        tableHTML += `</tr></thead>`;
+        
+        // بقية الصفوف كبيانات
+        tableHTML += `<tbody>`;
+        for (let i = 1; i < values.length; i++) {
+            tableHTML += `<tr>`;
+            values[i].forEach(cell => {
+                tableHTML += `<td>${cell || ''}</td>`;
+            });
+            // إضافة خلايا فارغة إذا كان الصف غير مكتمل
+            if (values[i].length < values[0].length) {
+                for (let j = values[i].length; j < values[0].length; j++) {
+                    tableHTML += `<td></td>`;
+                }
+            }
+            tableHTML += `</tr>`;
+        }
+        tableHTML += `</tbody></table>`;
+        
+        container.innerHTML = tableHTML;
+        currentSpreadsheetId = spreadsheetId;
+        
+    } catch (err) {
+        console.error("Error loading spreadsheet:", err);
+        document.getElementById("tableContainer").innerHTML = 
+            `<div class="loading">Error loading spreadsheet: ${err.message}</div>`;
+    }
+}
+
+// إغلاق الجدول
+function closeTable() {
+    document.getElementById("tableContainer").style.display = "none";
+    document.getElementById("closeTableBtn").style.display = "none";
+    currentSpreadsheetId = null;
+}
+
 // Go back
 function goBack() {
     if (folderStack.length > 1) {
         folderStack.pop();
         loadFolder(folderStack[folderStack.length - 1]);
     }
+    closeTable();
 }
 </script>
 
