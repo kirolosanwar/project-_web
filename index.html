@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Drive Explorer - Professional</title>
+    <title>Google Drive Explorer - Data Analysis</title>
     
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client"></script>
@@ -11,13 +11,17 @@
     <!-- Google API -->
     <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
     
-    <!-- Font Awesome for icons -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         :root {
             --primary-color: #1a73e8;
             --secondary-color: #0f9d58;
+            --accent-color: #fbbc04;
             --danger-color: #d93025;
             --light-color: #f8f9fa;
             --dark-color: #202124;
@@ -80,7 +84,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
             display: flex;
             align-items: center;
@@ -90,7 +94,7 @@
         
         /* Main Container */
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 2rem auto;
             padding: 0 1.5rem;
         }
@@ -141,6 +145,15 @@
             transform: translateY(-2px);
         }
         
+        .btn-accent {
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .btn-accent:hover {
+            background: #e0a800;
+        }
+        
         .btn-danger {
             background: var(--danger-color);
             color: white;
@@ -157,24 +170,6 @@
         
         .btn-success:hover {
             background: #0b8043;
-        }
-        
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-left: auto;
-        }
-        
-        .breadcrumb-item {
-            color: var(--gray-color);
-            font-size: 14px;
-        }
-        
-        .breadcrumb-item.active {
-            color: var(--primary-color);
-            font-weight: 500;
         }
         
         /* File Grid */
@@ -194,8 +189,6 @@
             cursor: pointer;
             border: 2px solid transparent;
             text-align: center;
-            position: relative;
-            overflow: hidden;
         }
         
         .file-card:hover {
@@ -217,10 +210,6 @@
             color: var(--secondary-color);
         }
         
-        .file-icon {
-            color: #34a853;
-        }
-        
         .file-name {
             font-weight: 500;
             margin-bottom: 0.5rem;
@@ -236,25 +225,7 @@
             display: inline-block;
         }
         
-        .file-actions {
-            margin-top: 1rem;
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-        }
-        
-        .action-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        /* Spreadsheet Table */
+        /* Spreadsheet Container */
         .spreadsheet-container {
             background: white;
             border-radius: 12px;
@@ -278,139 +249,146 @@
             border-bottom: 1px solid var(--border-color);
         }
         
-        .spreadsheet-title {
+        /* Column Selection */
+        .column-selection {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .selection-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+        
+        .columns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .column-checkbox {
             display: flex;
             align-items: center;
-            gap: 12px;
-        }
-        
-        .sheet-tabs {
-            display: flex;
-            gap: 5px;
-            margin: 1.5rem 0;
-            flex-wrap: wrap;
-        }
-        
-        .sheet-tab {
-            padding: 0.5rem 1rem;
-            background: #f1f3f4;
-            border-radius: 6px;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
             cursor: pointer;
             transition: all 0.3s ease;
         }
         
-        .sheet-tab.active {
+        .column-checkbox:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .column-checkbox.selected {
+            border-color: var(--secondary-color);
+            background: rgba(15, 157, 88, 0.05);
+        }
+        
+        .column-checkbox input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .column-label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .column-name {
+            font-weight: 500;
+        }
+        
+        .column-type {
+            font-size: 12px;
+            color: var(--gray-color);
+        }
+        
+        /* Visualizations Container */
+        .visualizations-container {
+            margin-top: 2rem;
+        }
+        
+        .viz-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        .viz-tab {
+            padding: 10px 20px;
+            background: #f1f3f4;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .viz-tab.active {
             background: var(--primary-color);
             color: white;
         }
         
-        .sheet-tab:hover:not(.active) {
+        .viz-tab:hover:not(.active) {
             background: #e8eaed;
         }
         
-        .columns-header {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
         }
         
-        .columns-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--dark-color);
-        }
-        
-        .columns-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .column-badge {
-            background: white;
-            border: 1px solid var(--border-color);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .column-index {
-            background: var(--primary-color);
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1.5rem;
-            overflow: hidden;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .data-table th {
-            background: #f8f9fa;
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: var(--dark-color);
-            border-bottom: 2px solid var(--border-color);
-            position: sticky;
-            top: 0;
-        }
-        
-        .data-table td {
-            padding: 0.9rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: top;
-        }
-        
-        .data-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
+        .chart-container {
             background: white;
             border-radius: 12px;
+            padding: 1.5rem;
             box-shadow: var(--shadow);
         }
         
-        .empty-icon {
-            font-size: 64px;
-            color: #dadce0;
-            margin-bottom: 1.5rem;
-        }
-        
-        .empty-title {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 1rem;
             color: var(--dark-color);
         }
         
-        .empty-message {
-            color: var(--gray-color);
-            max-width: 400px;
-            margin: 0 auto;
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        /* Correlation Matrix */
+        .correlation-matrix {
+            display: grid;
+            grid-template-columns: auto repeat(auto-fit, minmax(100px, 1fr));
+            gap: 5px;
+            margin-top: 1rem;
+        }
+        
+        .matrix-cell {
+            padding: 10px;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .matrix-header {
+            background: #f1f3f4;
+            font-weight: 600;
         }
         
         /* Loading */
@@ -436,31 +414,16 @@
         
         /* Responsive */
         @media (max-width: 768px) {
-            .navbar {
-                padding: 0.8rem 1rem;
+            .charts-grid {
+                grid-template-columns: 1fr;
             }
             
-            .toolbar {
-                flex-direction: column;
-                align-items: flex-start;
+            .chart-wrapper {
+                height: 250px;
             }
             
-            .breadcrumb {
-                margin-left: 0;
-                margin-top: 10px;
-            }
-            
-            .file-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            }
-            
-            .spreadsheet-container {
-                padding: 1rem;
-            }
-            
-            .data-table {
-                display: block;
-                overflow-x: auto;
+            .columns-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -469,8 +432,8 @@
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="logo">
-            <i class="fas fa-cloud-upload-alt logo-icon"></i>
-            <span class="logo-text">Drive Explorer Pro</span>
+            <i class="fas fa-chart-line logo-icon"></i>
+            <span class="logo-text">Drive Data Analyzer</span>
         </div>
         
         <div class="user-info" id="userInfo" style="display: none;">
@@ -493,28 +456,25 @@
                 <i class="fas fa-arrow-left"></i> Back
             </button>
             
-            <button class="btn btn-danger" onclick="closeSpreadsheet()" id="closeSpreadsheetBtn" style="display: none;">
-                <i class="fas fa-times"></i> Close Spreadsheet
+            <button class="btn btn-danger" onclick="closeAnalysis()" id="closeAnalysisBtn" style="display: none;">
+                <i class="fas fa-times"></i> Close Analysis
             </button>
-            
-            <div class="breadcrumb" id="breadcrumb">
-                <span class="breadcrumb-item"><i class="fas fa-home"></i> Drive</span>
-            </div>
         </div>
         
         <!-- Files Grid -->
         <div id="files" class="file-grid"></div>
         
-        <!-- Spreadsheet View -->
-        <div id="spreadsheetContainer" class="spreadsheet-container" style="display: none;"></div>
+        <!-- Spreadsheet Analysis View -->
+        <div id="analysisContainer" class="spreadsheet-container" style="display: none;">
+            <div id="analysisContent"></div>
+        </div>
         
-        <!-- Empty State (Initially shown) -->
-        <div id="emptyState" class="empty-state">
-            <i class="fas fa-cloud empty-icon"></i>
-            <h2 class="empty-title">Welcome to Drive Explorer Pro</h2>
-            <p class="empty-message">
-                Sign in with your Google account to browse and explore your Google Drive files. 
-                View Excel/Google Sheets files directly as interactive tables with column names.
+        <!-- Empty State -->
+        <div id="emptyState" class="loading">
+            <i class="fas fa-chart-bar" style="font-size: 64px; color: #dadce0; margin-bottom: 1rem;"></i>
+            <h2>Welcome to Drive Data Analyzer</h2>
+            <p style="color: var(--gray-color); max-width: 600px; margin: 1rem auto;">
+                Sign in to analyze your Google Sheets data. Select columns and visualize relationships with interactive charts.
             </p>
             <button class="btn btn-primary" id="emptyLoginBtn" style="margin-top: 1.5rem;">
                 <i class="fas fa-sign-in-alt"></i> Sign In to Get Started
@@ -529,9 +489,10 @@
         const SCOPES = `${DRIVE_SCOPE} ${SHEETS_SCOPE}`;
         
         let folderStack = ["root"];
-        let folderNames = ["My Drive"];
         let tokenClient;
         let currentSpreadsheet = null;
+        let selectedColumns = new Set();
+        let chartInstances = [];
         
         // Initialize Google API
         function gapiLoaded() {
@@ -566,12 +527,6 @@
                         gapi.client.setToken(resp);
                         afterLogin();
                     }
-                },
-                error_callback: (error) => {
-                    console.error("OAuth error:", error);
-                    if (error.type === "access_denied") {
-                        alert("Access denied. Please make sure you're added as a test user or the app is published.");
-                    }
                 }
             });
             tokenClient.requestAccessToken();
@@ -579,7 +534,6 @@
         
         // After successful login
         async function afterLogin() {
-            // Hide login button, show user info
             document.getElementById("loginBtn").style.display = "none";
             document.getElementById("emptyLoginBtn").style.display = "none";
             document.getElementById("userInfo").style.display = "flex";
@@ -591,19 +545,12 @@
                     fields: "user"
                 });
                 const userName = userInfo.result.user.displayName;
-                const userEmail = userInfo.result.user.emailAddress;
-                
                 document.getElementById("userAvatar").textContent = userName.charAt(0).toUpperCase();
-                document.getElementById("userAvatar").title = `${userName}\n${userEmail}`;
-                
             } catch (error) {
                 console.error("Error fetching user info:", error);
             }
             
-            // Load root folder
             folderStack = ["root"];
-            folderNames = ["My Drive"];
-            updateBreadcrumb();
             loadFolder("root");
         }
         
@@ -618,39 +565,6 @@
             location.reload();
         };
         
-        // Update breadcrumb navigation
-        function updateBreadcrumb() {
-            const breadcrumb = document.getElementById("breadcrumb");
-            breadcrumb.innerHTML = '';
-            
-            folderNames.forEach((name, index) => {
-                const span = document.createElement("span");
-                span.className = `breadcrumb-item ${index === folderNames.length - 1 ? 'active' : ''}`;
-                span.textContent = name;
-                
-                if (index < folderNames.length - 1) {
-                    span.style.cursor = "pointer";
-                    span.onclick = () => {
-                        // Go back to this folder
-                        folderStack = folderStack.slice(0, index + 1);
-                        folderNames = folderNames.slice(0, index + 1);
-                        updateBreadcrumb();
-                        loadFolder(folderStack[folderStack.length - 1]);
-                    };
-                }
-                
-                breadcrumb.appendChild(span);
-                
-                if (index < folderNames.length - 1) {
-                    const separator = document.createElement("i");
-                    separator.className = "fas fa-chevron-right";
-                    separator.style.margin = "0 8px";
-                    separator.style.color = "#dadce0";
-                    breadcrumb.appendChild(separator);
-                }
-            });
-        }
-        
         // Load folder content
         async function loadFolder(folderId) {
             try {
@@ -663,7 +577,7 @@
                 
                 const res = await gapi.client.drive.files.list({
                     q: `'${folderId}' in parents and trashed = false`,
-                    fields: "files(id, name, mimeType, modifiedTime, size)",
+                    fields: "files(id, name, mimeType)",
                     orderBy: "folder, name",
                     pageSize: 100
                 });
@@ -672,10 +586,10 @@
                 
                 if (!res.result.files || res.result.files.length === 0) {
                     container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-folder-open empty-icon"></i>
-                            <h2 class="empty-title">Empty Folder</h2>
-                            <p class="empty-message">This folder doesn't contain any files or subfolders.</p>
+                        <div class="loading">
+                            <i class="fas fa-folder-open" style="font-size: 64px; color: #dadce0;"></i>
+                            <h2>Empty Folder</h2>
+                            <p style="color: var(--gray-color);">No files found in this folder.</p>
                         </div>
                     `;
                     return;
@@ -683,34 +597,40 @@
                 
                 container.innerHTML = '';
                 
-                // Separate folders and files
+                // Separate folders and spreadsheets
                 const folders = res.result.files.filter(file => file.mimeType === "application/vnd.google-apps.folder");
-                const files = res.result.files.filter(file => file.mimeType !== "application/vnd.google-apps.folder");
+                const spreadsheets = res.result.files.filter(file => file.mimeType === "application/vnd.google-apps.spreadsheet");
+                const otherFiles = res.result.files.filter(file => 
+                    file.mimeType !== "application/vnd.google-apps.folder" && 
+                    file.mimeType !== "application/vnd.google-apps.spreadsheet"
+                );
                 
-                // Display folders first
+                // Display folders
                 folders.forEach(file => {
                     createFileCard(file, true);
                 });
                 
-                // Display files
-                files.forEach(file => {
+                // Display spreadsheets
+                spreadsheets.forEach(file => {
                     createFileCard(file, false);
                 });
                 
-                // Hide spreadsheet view
-                document.getElementById("spreadsheetContainer").style.display = "none";
-                document.getElementById("closeSpreadsheetBtn").style.display = "none";
+                // Display other files
+                otherFiles.forEach(file => {
+                    createFileCard(file, false);
+                });
+                
+                // Hide analysis view
+                document.getElementById("analysisContainer").style.display = "none";
+                document.getElementById("closeAnalysisBtn").style.display = "none";
                 
             } catch (err) {
                 console.error(err);
                 document.getElementById("files").innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-circle empty-icon"></i>
-                        <h2 class="empty-title">Error Loading Files</h2>
-                        <p class="empty-message">${err.message || "Please try signing in again."}</p>
-                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1.5rem;">
-                            <i class="fas fa-redo"></i> Reload Page
-                        </button>
+                    <div class="loading">
+                        <i class="fas fa-exclamation-circle" style="font-size: 64px; color: var(--danger-color);"></i>
+                        <h2>Error Loading Files</h2>
+                        <p style="color: var(--gray-color);">${err.message}</p>
                     </div>
                 `;
             }
@@ -731,7 +651,7 @@
                 icon.innerHTML = '<i class="fas fa-folder"></i>';
             } else if (isSpreadsheet) {
                 icon.className = "file-icon spreadsheet-icon";
-                icon.innerHTML = '<i class="fas fa-table"></i>';
+                icon.innerHTML = '<i class="fas fa-chart-bar"></i>';
             } else {
                 icon.className = "file-icon";
                 icon.innerHTML = '<i class="fas fa-file"></i>';
@@ -740,70 +660,37 @@
             // File name
             const name = document.createElement("div");
             name.className = "file-name";
-            name.textContent = file.name.length > 30 ? file.name.substring(0, 30) + "..." : file.name;
-            name.title = file.name;
+            name.textContent = file.name;
             
-            // File type badge
+            // File type
             const type = document.createElement("div");
             type.className = "file-type";
-            if (isFolder) {
-                type.textContent = "Folder";
-            } else if (isSpreadsheet) {
-                type.textContent = "Spreadsheet";
-            } else {
-                const mimeParts = file.mimeType.split('/');
-                type.textContent = mimeParts.length > 1 ? mimeParts[1].toUpperCase() : "File";
-            }
+            type.textContent = isFolder ? "Folder" : (isSpreadsheet ? "Spreadsheet" : "File");
             
-            // File actions
-            const actions = document.createElement("div");
-            actions.className = "file-actions";
+            card.appendChild(icon);
+            card.appendChild(name);
+            card.appendChild(type);
             
             if (isFolder) {
                 card.onclick = () => {
                     folderStack.push(file.id);
-                    folderNames.push(file.name);
-                    updateBreadcrumb();
                     loadFolder(file.id);
                 };
             } else if (isSpreadsheet) {
-                // Add view spreadsheet button
-                const viewBtn = document.createElement("button");
-                viewBtn.className = "action-btn btn-success";
-                viewBtn.innerHTML = '<i class="fas fa-table"></i> View';
-                viewBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    loadSpreadsheet(file.id, file.name);
+                card.onclick = () => {
+                    analyzeSpreadsheet(file.id, file.name);
                 };
-                actions.appendChild(viewBtn);
-                
-                // Add open in new tab button
-                const openBtn = document.createElement("button");
-                openBtn.className = "action-btn btn-secondary";
-                openBtn.innerHTML = '<i class="fas fa-external-link-alt"></i> Open';
-                openBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    window.open(`https://docs.google.com/spreadsheets/d/${file.id}/edit`, "_blank");
-                };
-                actions.appendChild(openBtn);
-                
-                card.onclick = () => loadSpreadsheet(file.id, file.name);
             } else {
                 card.onclick = () => {
                     window.open(`https://drive.google.com/file/d/${file.id}/view`, "_blank");
                 };
             }
             
-            card.appendChild(icon);
-            card.appendChild(name);
-            card.appendChild(type);
-            card.appendChild(actions);
-            
             container.appendChild(card);
         }
         
-        // Load and display spreadsheet
-        async function loadSpreadsheet(spreadsheetId, spreadsheetName) {
+        // Analyze spreadsheet
+        async function analyzeSpreadsheet(spreadsheetId, spreadsheetName) {
             try {
                 document.getElementById("files").innerHTML = `
                     <div class="loading">
@@ -812,207 +699,590 @@
                     </div>
                 `;
                 
-                document.getElementById("closeSpreadsheetBtn").style.display = "inline-block";
+                document.getElementById("closeAnalysisBtn").style.display = "inline-block";
                 
-                const container = document.getElementById("spreadsheetContainer");
+                const container = document.getElementById("analysisContainer");
+                const content = document.getElementById("analysisContent");
                 container.style.display = "block";
-                container.innerHTML = `
+                
+                content.innerHTML = `
                     <div class="loading">
                         <div class="spinner"></div>
-                        <p>Loading "${spreadsheetName}"...</p>
+                        <p>Analyzing "${spreadsheetName}"...</p>
                     </div>
                 `;
                 
-                // Get spreadsheet info
+                // Get spreadsheet data
                 const spreadsheet = await gapi.client.sheets.spreadsheets.get({
                     spreadsheetId: spreadsheetId
                 });
                 
-                currentSpreadsheet = {
-                    id: spreadsheetId,
-                    name: spreadsheetName,
-                    sheets: spreadsheet.result.sheets.map(sheet => ({
-                        id: sheet.properties.sheetId,
-                        name: sheet.properties.title,
-                        index: sheet.properties.index
-                    }))
-                };
+                // Use first sheet
+                const sheetName = spreadsheet.result.sheets[0].properties.title;
                 
-                // Load first sheet by default
-                await loadSheet(currentSpreadsheet.sheets[0].name);
-                
-                // Create sheet tabs
-                createSheetTabs();
-                
-            } catch (err) {
-                console.error("Error loading spreadsheet:", err);
-                document.getElementById("spreadsheetContainer").innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-circle empty-icon"></i>
-                        <h2 class="empty-title">Error Loading Spreadsheet</h2>
-                        <p class="empty-message">${err.message || "Unable to load the spreadsheet data."}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        // Load specific sheet
-        async function loadSheet(sheetName) {
-            try {
-                const container = document.getElementById("spreadsheetContainer");
-                container.innerHTML = `
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <p>Loading "${sheetName}" sheet...</p>
-                    </div>
-                `;
-                
-                // Get sheet data
+                // Get all data from sheet
                 const rangeResponse = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: currentSpreadsheet.id,
+                    spreadsheetId: spreadsheetId,
                     range: sheetName
                 });
                 
                 const values = rangeResponse.result.values || [];
                 
                 if (values.length === 0) {
-                    container.innerHTML = `
+                    content.innerHTML = `
                         <div class="spreadsheet-header">
-                            <div class="spreadsheet-title">
-                                <i class="fas fa-table" style="color: var(--secondary-color); font-size: 24px;"></i>
-                                <div>
-                                    <h2>${currentSpreadsheet.name}</h2>
-                                    <p style="color: var(--gray-color); font-size: 14px;">Sheet: ${sheetName}</p>
-                                </div>
-                            </div>
+                            <h2>${spreadsheetName}</h2>
                         </div>
-                        <div class="empty-state">
-                            <i class="fas fa-table empty-icon"></i>
-                            <h2 class="empty-title">Empty Sheet</h2>
-                            <p class="empty-message">This sheet doesn't contain any data.</p>
+                        <div class="loading">
+                            <i class="fas fa-table" style="font-size: 64px; color: #dadce0;"></i>
+                            <h2>Empty Spreadsheet</h2>
+                            <p style="color: var(--gray-color);">No data found in this spreadsheet.</p>
                         </div>
                     `;
                     return;
                 }
                 
-                // Extract column names (first row)
-                const columnNames = values[0] || [];
+                // Store current spreadsheet data
+                currentSpreadsheet = {
+                    id: spreadsheetId,
+                    name: spreadsheetName,
+                    sheetName: sheetName,
+                    data: values,
+                    columns: values[0] || []
+                };
                 
-                // Build the spreadsheet view
-                let html = `
-                    <div class="spreadsheet-header">
-                        <div class="spreadsheet-title">
-                            <i class="fas fa-table" style="color: var(--secondary-color); font-size: 24px;"></i>
-                            <div>
-                                <h2>${currentSpreadsheet.name}</h2>
-                                <p style="color: var(--gray-color); font-size: 14px;">Sheet: ${sheetName}</p>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="file-type" style="background: var(--secondary-color); color: white;">
-                                ${values.length - 1} rows, ${columnNames.length} columns
-                            </span>
-                        </div>
-                    </div>
-                `;
+                // Reset selected columns
+                selectedColumns.clear();
                 
-                // Display column names
-                html += `
-                    <div class="columns-header">
-                        <h3 class="columns-title">Column Names</h3>
-                        <div class="columns-list">
-                `;
-                
-                columnNames.forEach((colName, index) => {
-                    html += `
-                        <div class="column-badge">
-                            <span class="column-index">${index + 1}</span>
-                            <span>${colName || `Column ${index + 1}`}</span>
-                        </div>
-                    `;
-                });
-                
-                html += `
-                        </div>
-                    </div>
-                `;
-                
-                // Create table
-                html += `<div style="overflow-x: auto;"><table class="data-table">`;
-                
-                // Table headers (column names)
-                html += `<thead><tr>`;
-                columnNames.forEach(colName => {
-                    html += `<th>${colName || ""}</th>`;
-                });
-                html += `</tr></thead>`;
-                
-                // Table body (data rows)
-                html += `<tbody>`;
-                for (let i = 1; i < values.length; i++) {
-                    html += `<tr>`;
-                    const row = values[i];
-                    
-                    // Fill all columns
-                    for (let j = 0; j < columnNames.length; j++) {
-                        const cellValue = row && j < row.length ? row[j] : "";
-                        html += `<td>${cellValue}</td>`;
-                    }
-                    
-                    html += `</tr>`;
-                }
-                html += `</tbody></table></div>`;
-                
-                container.innerHTML = html;
+                // Display column selection interface
+                displayColumnSelection();
                 
             } catch (err) {
-                console.error("Error loading sheet:", err);
-                document.getElementById("spreadsheetContainer").innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-circle empty-icon"></i>
-                        <h2 class="empty-title">Error Loading Sheet</h2>
-                        <p class="empty-message">${err.message || "Unable to load sheet data."}</p>
+                console.error("Error analyzing spreadsheet:", err);
+                document.getElementById("analysisContent").innerHTML = `
+                    <div class="loading">
+                        <i class="fas fa-exclamation-circle" style="font-size: 64px; color: var(--danger-color);"></i>
+                        <h2>Error Loading Spreadsheet</h2>
+                        <p style="color: var(--gray-color);">${err.message}</p>
                     </div>
                 `;
             }
         }
         
-        // Create sheet tabs
-        function createSheetTabs() {
-            if (!currentSpreadsheet || currentSpreadsheet.sheets.length <= 1) return;
+        // Display column selection interface
+        function displayColumnSelection() {
+            const content = document.getElementById("analysisContent");
             
-            const container = document.getElementById("spreadsheetContainer");
-            const header = container.querySelector(".spreadsheet-header");
-            
-            if (!header) return;
-            
-            const sheetTabs = document.createElement("div");
-            sheetTabs.className = "sheet-tabs";
-            
-            currentSpreadsheet.sheets.forEach((sheet, index) => {
-                const tab = document.createElement("div");
-                tab.className = `sheet-tab ${index === 0 ? "active" : ""}`;
-                tab.textContent = sheet.name;
-                tab.onclick = () => {
-                    // Update active tab
-                    document.querySelectorAll(".sheet-tab").forEach(t => t.classList.remove("active"));
-                    tab.classList.add("active");
-                    
-                    // Load the selected sheet
-                    loadSheet(sheet.name);
-                };
+            let html = `
+                <div class="spreadsheet-header">
+                    <div>
+                        <h2>${currentSpreadsheet.name}</h2>
+                        <p style="color: var(--gray-color); margin-top: 5px;">
+                            Sheet: ${currentSpreadsheet.sheetName} | 
+                            ${currentSpreadsheet.data.length} rows, ${currentSpreadsheet.columns.length} columns
+                        </p>
+                    </div>
+                    <div>
+                        <button class="btn btn-success" onclick="generateVisualizations()" id="generateVizBtn" ${selectedColumns.size < 2 ? 'disabled' : ''}>
+                            <i class="fas fa-chart-line"></i> Generate Visualizations
+                        </button>
+                    </div>
+                </div>
                 
-                sheetTabs.appendChild(tab);
+                <div class="column-selection">
+                    <h3 class="selection-title">Select Columns for Analysis (Choose 2 or more)</h3>
+                    <p style="color: var(--gray-color); margin-bottom: 1rem;">
+                        Selected: <span id="selectedCount">0</span> columns
+                    </p>
+                    
+                    <div class="columns-grid" id="columnsGrid">
+            `;
+            
+            // Display columns with checkboxes
+            currentSpreadsheet.columns.forEach((colName, index) => {
+                const sampleData = getColumnSampleData(index);
+                const dataType = detectDataType(sampleData);
+                
+                html += `
+                    <div class="column-checkbox" onclick="toggleColumn(${index})">
+                        <input type="checkbox" id="col-${index}" onchange="toggleColumn(${index})">
+                        <div class="column-label">
+                            <span class="column-name">${colName || `Column ${index + 1}`}</span>
+                            <span class="column-type">${dataType} • ${sampleData.length} values</span>
+                        </div>
+                    </div>
+                `;
             });
             
-            header.parentNode.insertBefore(sheetTabs, header.nextSibling);
+            html += `
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                        <button class="btn btn-secondary" onclick="selectAllColumns()">
+                            <i class="fas fa-check-double"></i> Select All
+                        </button>
+                        <button class="btn btn-secondary" onclick="deselectAllColumns()">
+                            <i class="fas fa-times"></i> Deselect All
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="visualizations" class="visualizations-container" style="display: none;">
+                    <!-- Visualizations will be generated here -->
+                </div>
+            `;
+            
+            content.innerHTML = html;
         }
         
-        // Close spreadsheet view
-        function closeSpreadsheet() {
-            document.getElementById("spreadsheetContainer").style.display = "none";
-            document.getElementById("closeSpreadsheetBtn").style.display = "none";
-            currentSpreadsheet = null;
+        // Toggle column selection
+        function toggleColumn(index) {
+            const checkbox = document.getElementById(`col-${index}`);
+            const columnDiv = checkbox.closest('.column-checkbox');
+            
+            if (selectedColumns.has(index)) {
+                selectedColumns.delete(index);
+                columnDiv.classList.remove('selected');
+                checkbox.checked = false;
+            } else {
+                selectedColumns.add(index);
+                columnDiv.classList.add('selected');
+                checkbox.checked = true;
+            }
+            
+            // Update selected count
+            document.getElementById('selectedCount').textContent = selectedColumns.size;
+            
+            // Enable/disable generate button
+            const generateBtn = document.getElementById('generateVizBtn');
+            generateBtn.disabled = selectedColumns.size < 2;
+        }
+        
+        // Select all columns
+        function selectAllColumns() {
+            currentSpreadsheet.columns.forEach((_, index) => {
+                selectedColumns.add(index);
+                const checkbox = document.getElementById(`col-${index}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    checkbox.closest('.column-checkbox').classList.add('selected');
+                }
+            });
+            document.getElementById('selectedCount').textContent = selectedColumns.size;
+            document.getElementById('generateVizBtn').disabled = selectedColumns.size < 2;
+        }
+        
+        // Deselect all columns
+        function deselectAllColumns() {
+            selectedColumns.clear();
+            currentSpreadsheet.columns.forEach((_, index) => {
+                const checkbox = document.getElementById(`col-${index}`);
+                if (checkbox) {
+                    checkbox.checked = false;
+                    checkbox.closest('.column-checkbox').classList.remove('selected');
+                }
+            });
+            document.getElementById('selectedCount').textContent = 0;
+            document.getElementById('generateVizBtn').disabled = true;
+        }
+        
+        // Get sample data for a column
+        function getColumnSampleData(columnIndex) {
+            const sample = [];
+            for (let i = 1; i < Math.min(currentSpreadsheet.data.length, 100); i++) {
+                if (currentSpreadsheet.data[i] && currentSpreadsheet.data[i][columnIndex] !== undefined) {
+                    sample.push(currentSpreadsheet.data[i][columnIndex]);
+                }
+            }
+            return sample;
+        }
+        
+        // Detect data type of a column
+        function detectDataType(sampleData) {
+            if (sampleData.length === 0) return "Unknown";
+            
+            let numericCount = 0;
+            let dateCount = 0;
+            
+            sampleData.forEach(value => {
+                if (!isNaN(parseFloat(value)) && isFinite(value)) {
+                    numericCount++;
+                }
+                // Simple date detection
+                if (typeof value === 'string' && (
+                    value.includes('/') || 
+                    value.includes('-') ||
+                    value.toLowerCase().includes('jan') ||
+                    value.toLowerCase().includes('feb')
+                )) {
+                    dateCount++;
+                }
+            });
+            
+            const numericRatio = numericCount / sampleData.length;
+            const dateRatio = dateCount / sampleData.length;
+            
+            if (dateRatio > 0.3) return "Date";
+            if (numericRatio > 0.7) return "Numeric";
+            return "Categorical";
+        }
+        
+        // Generate visualizations
+        function generateVisualizations() {
+            // Destroy existing charts
+            chartInstances.forEach(chart => chart.destroy());
+            chartInstances = [];
+            
+            const selectedCols = Array.from(selectedColumns);
+            const colNames = selectedCols.map(idx => currentSpreadsheet.columns[idx] || `Column ${idx + 1}`);
+            
+            const vizContainer = document.getElementById('visualizations');
+            vizContainer.style.display = 'block';
+            
+            // Get data for selected columns
+            const columnData = {};
+            selectedCols.forEach(colIdx => {
+                columnData[colIdx] = [];
+                for (let i = 1; i < currentSpreadsheet.data.length; i++) {
+                    const value = currentSpreadsheet.data[i][colIdx];
+                    columnData[colIdx].push(value);
+                }
+            });
+            
+            // Generate visualizations
+            let html = `
+                <div class="viz-tabs">
+                    <div class="viz-tab active" onclick="switchVizTab('scatter')">Scatter Plots</div>
+                    <div class="viz-tab" onclick="switchVizTab('correlation')">Correlation Matrix</div>
+                    <div class="viz-tab" onclick="switchVizTab('parallel')">Parallel Coordinates</div>
+                </div>
+                
+                <div id="scatterViz" class="charts-grid">
+            `;
+            
+            // Create scatter plots for all pairs
+            for (let i = 0; i < selectedCols.length; i++) {
+                for (let j = i + 1; j < selectedCols.length; j++) {
+                    const col1 = selectedCols[i];
+                    const col2 = selectedCols[j];
+                    const name1 = colNames[i];
+                    const name2 = colNames[j];
+                    
+                    html += `
+                        <div class="chart-container">
+                            <div class="chart-title">${name1} vs ${name2}</div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-${col1}-${col2}"></canvas>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            html += `</div>`;
+            
+            // Correlation matrix
+            html += `
+                <div id="correlationViz" class="chart-container" style="display: none;">
+                    <div class="chart-title">Correlation Matrix</div>
+                    <div class="chart-wrapper">
+                        <canvas id="correlationChart"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            // Parallel coordinates
+            html += `
+                <div id="parallelViz" class="chart-container" style="display: none;">
+                    <div class="chart-title">Parallel Coordinates Plot</div>
+                    <div class="chart-wrapper">
+                        <canvas id="parallelChart"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            vizContainer.innerHTML = html;
+            
+            // Create scatter plots
+            setTimeout(() => {
+                for (let i = 0; i < selectedCols.length; i++) {
+                    for (let j = i + 1; j < selectedCols.length; j++) {
+                        const col1 = selectedCols[i];
+                        const col2 = selectedCols[j];
+                        createScatterPlot(col1, col2, colNames[i], colNames[j]);
+                    }
+                }
+                
+                // Create correlation matrix
+                createCorrelationMatrix(selectedCols, colNames);
+                
+                // Create parallel coordinates plot
+                createParallelCoordinatesPlot(selectedCols, colNames);
+            }, 100);
+        }
+        
+        // Create scatter plot
+        function createScatterPlot(col1, col2, label1, label2) {
+            const ctx = document.getElementById(`chart-${col1}-${col2}`).getContext('2d');
+            
+            const data1 = [];
+            const data2 = [];
+            const labels = [];
+            
+            // Prepare data
+            for (let i = 1; i < currentSpreadsheet.data.length; i++) {
+                const val1 = currentSpreadsheet.data[i][col1];
+                const val2 = currentSpreadsheet.data[i][col2];
+                
+                if (val1 !== undefined && val2 !== undefined && val1 !== '' && val2 !== '') {
+                    data1.push(parseFloat(val1) || val1);
+                    data2.push(parseFloat(val2) || val2);
+                    labels.push(`Row ${i}`);
+                }
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: `${label1} vs ${label2}`,
+                        data: data1.map((val, idx) => ({
+                            x: val,
+                            y: data2[idx]
+                        })),
+                        backgroundColor: 'rgba(26, 115, 232, 0.6)',
+                        borderColor: 'rgba(26, 115, 232, 1)',
+                        borderWidth: 1,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: label1
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: label2
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    return `${label1}: ${context.parsed.x}, ${label2}: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            chartInstances.push(chart);
+        }
+        
+        // Create correlation matrix
+        function createCorrelationMatrix(selectedCols, colNames) {
+            const ctx = document.getElementById('correlationChart').getContext('2d');
+            
+            // Calculate correlations
+            const matrix = [];
+            for (let i = 0; i < selectedCols.length; i++) {
+                matrix[i] = [];
+                for (let j = 0; j < selectedCols.length; j++) {
+                    if (i === j) {
+                        matrix[i][j] = 1;
+                    } else {
+                        matrix[i][j] = calculateCorrelation(selectedCols[i], selectedCols[j]);
+                    }
+                }
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'matrix',
+                data: {
+                    datasets: [{
+                        label: 'Correlation Matrix',
+                        data: matrix.flatMap((row, i) => 
+                            row.map((value, j) => ({
+                                x: j,
+                                y: i,
+                                v: value
+                            }))
+                        ),
+                        backgroundColor: (context) => {
+                            const value = context.dataset.data[context.dataIndex].v;
+                            const alpha = Math.abs(value);
+                            const hue = value > 0 ? 120 : 0; // Green for positive, red for negative
+                            return `hsla(${hue}, 70%, 50%, ${alpha})`;
+                        },
+                        borderColor: '#fff',
+                        borderWidth: 1,
+                        width: ({chart}) => (chart.chartArea.width - 60) / selectedCols.length,
+                        height: ({chart}) => (chart.chartArea.height - 60) / selectedCols.length
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: () => '',
+                                label: (context) => {
+                                    const data = context.dataset.data[context.dataIndex];
+                                    return `${colNames[data.y]} vs ${colNames[data.x]}: ${data.v.toFixed(3)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: (value) => colNames[value]
+                            },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: {
+                                callback: (value) => colNames[value]
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+            
+            chartInstances.push(chart);
+        }
+        
+        // Calculate correlation between two columns
+        function calculateCorrelation(col1, col2) {
+            const data1 = [];
+            const data2 = [];
+            
+            // Collect numeric data
+            for (let i = 1; i < currentSpreadsheet.data.length; i++) {
+                const val1 = currentSpreadsheet.data[i][col1];
+                const val2 = currentSpreadsheet.data[i][col2];
+                
+                if (val1 !== undefined && val2 !== undefined && val1 !== '' && val2 !== '') {
+                    const num1 = parseFloat(val1);
+                    const num2 = parseFloat(val2);
+                    
+                    if (!isNaN(num1) && !isNaN(num2)) {
+                        data1.push(num1);
+                        data2.push(num2);
+                    }
+                }
+            }
+            
+            if (data1.length < 2) return 0;
+            
+            // Calculate correlation coefficient
+            const mean1 = data1.reduce((a, b) => a + b, 0) / data1.length;
+            const mean2 = data2.reduce((a, b) => a + b, 0) / data2.length;
+            
+            let numerator = 0;
+            let denominator1 = 0;
+            let denominator2 = 0;
+            
+            for (let i = 0; i < data1.length; i++) {
+                numerator += (data1[i] - mean1) * (data2[i] - mean2);
+                denominator1 += Math.pow(data1[i] - mean1, 2);
+                denominator2 += Math.pow(data2[i] - mean2, 2);
+            }
+            
+            if (denomin1 === 0 || denominator2 === 0) return 0;
+            return numerator / Math.sqrt(denomin1 * denominator2);
+        }
+        
+        // Create parallel coordinates plot
+        function createParallelCoordinatesPlot(selectedCols, colNames) {
+            const ctx = document.getElementById('parallelChart').getContext('2d');
+            
+            // Prepare data (limit to 100 rows for performance)
+            const maxRows = Math.min(100, currentSpreadsheet.data.length - 1);
+            const datasets = [];
+            
+            for (let i = 1; i <= maxRows; i++) {
+                const row = currentSpreadsheet.data[i];
+                const data = selectedCols.map(colIdx => {
+                    const val = row ? row[colIdx] : null;
+                    const num = parseFloat(val);
+                    return isNaN(num) ? 0 : num;
+                });
+                
+                datasets.push({
+                    label: `Row ${i}`,
+                    data: data,
+                    borderColor: `hsla(${i * 10}, 70%, 50%, 0.5)`,
+                    backgroundColor: `hsla(${i * 10}, 70%, 50%, 0.1)`,
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0
+                });
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: colNames,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+            
+            chartInstances.push(chart);
+        }
+        
+        // Switch visualization tab
+        function switchVizTab(tab) {
+            // Update active tab
+            document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide visualizations
+            document.getElementById('scatterViz').style.display = tab === 'scatter' ? 'grid' : 'none';
+            document.getElementById('correlationViz').style.display = tab === 'correlation' ? 'block' : 'none';
+            document.getElementById('parallelViz').style.display = tab === 'parallel' ? 'block' : 'none';
+        }
+        
+        // Close analysis view
+        function closeAnalysis() {
+            // Destroy all charts
+            chartInstances.forEach(chart => chart.destroy());
+            chartInstances = [];
+            
+            document.getElementById("analysisContainer").style.display = "none";
+            document.getElementById("closeAnalysisBtn").style.display = "none";
             
             // Reload current folder
             loadFolder(folderStack[folderStack.length - 1]);
@@ -1022,10 +1292,8 @@
         function goBack() {
             if (folderStack.length > 1) {
                 folderStack.pop();
-                folderNames.pop();
-                updateBreadcrumb();
                 loadFolder(folderStack[folderStack.length - 1]);
-                closeSpreadsheet();
+                closeAnalysis();
             }
         }
     </script>
