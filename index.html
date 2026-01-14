@@ -53,21 +53,72 @@
             padding: 1.5rem;
             box-shadow: var(--shadow);
             margin-bottom: 25px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 5px solid var(--primary-color);
         }
         
-        .header h1 {
-            color: var(--primary-color);
-            margin-bottom: 10px;
+        .logo {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 15px;
         }
         
-        .header h1 i {
-            color: var(--secondary-color);
+        .logo-icon {
+            background: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .logo-text h1 {
+            color: var(--primary-color);
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .logo-text p {
+            color: var(--gray-color);
+            font-size: 14px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-details {
+            text-align: left;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .user-email {
+            font-size: 12px;
+            color: var(--gray-color);
+        }
+        
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
         }
         
         /* Main Container */
@@ -161,11 +212,27 @@
             background: #dadce0;
         }
         
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color), #b71c1c);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(217, 48, 37, 0.3);
+        }
+        
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
             box-shadow: none !important;
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+            width: auto;
         }
         
         /* File List */
@@ -453,35 +520,6 @@
             margin-bottom: 1rem;
         }
         
-        /* User Info */
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 15px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 18px;
-        }
-        
-        .user-name {
-            font-weight: 500;
-            color: var(--dark-color);
-        }
-        
         /* Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -500,141 +538,215 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #155bb5;
         }
+        
+        /* Login Page */
+        .login-page {
+            max-width: 500px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+        
+        .login-icon {
+            font-size: 80px;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+        
+        .login-title {
+            color: var(--dark-color);
+            margin-bottom: 1rem;
+            font-size: 28px;
+        }
+        
+        .login-subtitle {
+            color: var(--gray-color);
+            margin-bottom: 2rem;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        /* User Actions */
+        .user-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>
+    <!-- Login Page (Initially shown) -->
+    <div id="loginPage" class="login-page">
+        <div class="login-icon">
             <i class="fas fa-chart-network"></i>
-            محلل علاقات البيانات من Google Drive
-        </h1>
-        <p style="color: var(--gray-color);">اختر ملف Excel واحدًا لتحليل العلاقات بين أعمدة</p>
+        </div>
+        <h1 class="login-title">محلل علاقات البيانات</h1>
+        <p class="login-subtitle">
+            قم بتسجيل الدخول باستخدام حساب Google الخاص بك لتحليل العلاقات بين أعمدة ملفات Excel في Google Drive
+        </p>
+        <button class="btn btn-primary" id="loginBtn">
+            <i class="fab fa-google"></i>
+            تسجيل الدخول بحساب Google
+        </button>
     </div>
     
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <!-- Login Section -->
-            <div class="sidebar-section">
-                <div class="sidebar-title">
-                    <i class="fas fa-sign-in-alt"></i>
-                    الاتصال بـ Google
+    <!-- Main App (Initially hidden) -->
+    <div id="mainApp" style="display: none;">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
                 </div>
-                <button class="btn btn-primary" id="loginBtn">
-                    <i class="fab fa-google"></i>
-                    تسجيل الدخول بحساب Google
+                <div class="logo-text">
+                    <h1>محلل علاقات البيانات</h1>
+                    <p>تحليل العلاقات بين أعمدة ملفات Excel</p>
+                </div>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-details">
+                    <div class="user-name" id="userName">المستخدم</div>
+                    <div class="user-email" id="userEmail">user@example.com</div>
+                </div>
+                <div class="user-avatar" id="userAvatar">م</div>
+                <button class="btn btn-danger btn-small" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    تسجيل الخروج
                 </button>
-                <div id="userInfo" style="display: none;">
-                    <div class="user-info">
-                        <div class="user-avatar" id="userAvatar">م</div>
-                        <div>
-                            <div class="user-name" id="userName">مستخدم</div>
-                            <button class="btn-secondary" id="logoutBtn" style="padding: 5px 10px; font-size: 12px; margin: 0;">
-                                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- File Selection -->
-            <div class="sidebar-section" id="fileSection" style="display: none;">
-                <div class="sidebar-title">
-                    <i class="fas fa-file-excel"></i>
-                    اختر ملف Excel
-                </div>
-                <div class="file-list" id="fileList"></div>
-            </div>
-            
-            <!-- Columns Selection -->
-            <div class="sidebar-section" id="columnsSection" style="display: none;">
-                <div class="sidebar-title">
-                    <i class="fas fa-columns"></i>
-                    اختر الأعمدة (2 على الأقل)
-                </div>
-                <div class="columns-list" id="columnsList"></div>
-                <div style="margin-top: 15px;">
-                    <button class="btn btn-success" id="analyzeBtn" disabled>
-                        <i class="fas fa-chart-line"></i>
-                        تحليل العلاقات
-                    </button>
-                    <button class="btn btn-secondary" onclick="selectAllColumns()">
-                        <i class="fas fa-check-double"></i>
-                        اختيار الكل
-                    </button>
-                </div>
             </div>
         </div>
         
-        <!-- Main Content -->
-        <div class="content" id="contentArea">
-            <!-- Initial State -->
-            <div id="initialState" class="empty-state">
-                <i class="fas fa-chart-bar"></i>
-                <h3 style="margin-bottom: 10px; color: var(--dark-color);">مرحبًا بك في محلل العلاقات</h3>
-                <p>سجّل الدخول أولاً لتحليل علاقات البيانات في ملفات Excel الخاصة بك</p>
-            </div>
-            
-            <!-- Loading State -->
-            <div id="loadingState" class="loading" style="display: none;">
-                <div class="spinner"></div>
-                <p>جاري التحميل...</p>
-            </div>
-            
-            <!-- Analysis Results -->
-            <div id="analysisResults" style="display: none;">
-                <!-- Content Header -->
-                <div class="content-header">
-                    <div class="content-title" id="resultsTitle">
-                        <i class="fas fa-chart-line"></i>
-                        نتائج التحليل
+        <!-- Main Container -->
+        <div class="main-container">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- File Selection -->
+                <div class="sidebar-section">
+                    <div class="sidebar-title">
+                        <i class="fas fa-file-excel"></i>
+                        اختر ملف Excel
                     </div>
-                    <div class="selected-info" id="selectedInfo">
-                        تم اختيار 0 أعمدة
-                    </div>
-                </div>
-                
-                <!-- Tabs -->
-                <div class="tabs">
-                    <div class="tab active" onclick="switchTab('scatter')">
-                        <i class="fas fa-chart-scatter"></i>
-                        مخططات التشتت
-                    </div>
-                    <div class="tab" onclick="switchTab('correlation')">
-                        <i class="fas fa-th"></i>
-                        مصفوفة الارتباط
-                    </div>
-                    <div class="tab" onclick="switchTab('insights')">
-                        <i class="fas fa-lightbulb"></i>
-                        الرؤى والاستنتاجات
-                    </div>
-                </div>
-                
-                <!-- Scatter Plots -->
-                <div id="scatterTab">
-                    <div class="charts-grid" id="scatterCharts"></div>
-                </div>
-                
-                <!-- Correlation Matrix -->
-                <div id="correlationTab" style="display: none;">
-                    <div class="correlation-matrix">
-                        <div class="chart-card">
-                            <div class="chart-title">
-                                <i class="fas fa-th"></i>
-                                مصفوفة الارتباط بين الأعمدة
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="correlationChart"></canvas>
-                            </div>
+                    <div class="file-list" id="fileList">
+                        <div class="loading" style="padding: 2rem;">
+                            <div class="spinner"></div>
+                            <p>جاري تحميل الملفات...</p>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Insights -->
-                <div id="insightsTab" style="display: none;">
-                    <div class="insights-grid" id="insightsGrid"></div>
+                <!-- Columns Selection -->
+                <div class="sidebar-section" id="columnsSection">
+                    <div class="sidebar-title">
+                        <i class="fas fa-columns"></i>
+                        اختر الأعمدة (2 على الأقل)
+                    </div>
+                    <div class="columns-list" id="columnsList">
+                        <div class="empty-state" style="padding: 2rem;">
+                            <i class="fas fa-columns"></i>
+                            <p>اختر ملفًا أولاً لعرض الأعمدة</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-success" id="analyzeBtn" disabled>
+                            <i class="fas fa-chart-line"></i>
+                            تحليل العلاقات
+                        </button>
+                        <button class="btn btn-secondary" onclick="selectAllColumns()">
+                            <i class="fas fa-check-double"></i>
+                            اختيار الكل
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="sidebar-section">
+                    <div class="sidebar-title">
+                        <i class="fas fa-cogs"></i>
+                        إجراءات
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearSelection()">
+                        <i class="fas fa-redo"></i>
+                        مسح التحديد
+                    </button>
+                    <button class="btn btn-secondary" onclick="refreshFiles()">
+                        <i class="fas fa-sync-alt"></i>
+                        تحديث الملفات
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="content" id="contentArea">
+                <!-- Initial State -->
+                <div id="initialState" class="empty-state">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3 style="margin-bottom: 10px; color: var(--dark-color);">مرحبًا بك في محلل العلاقات</h3>
+                    <p>اختر ملف Excel من القائمة الجانبية، ثم اختر الأعمدة لتحليل العلاقات بينها</p>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="loadingState" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>جاري التحميل...</p>
+                </div>
+                
+                <!-- Analysis Results -->
+                <div id="analysisResults" style="display: none;">
+                    <!-- Content Header -->
+                    <div class="content-header">
+                        <div class="content-title" id="resultsTitle">
+                            <i class="fas fa-chart-line"></i>
+                            نتائج التحليل
+                        </div>
+                        <div class="selected-info" id="selectedInfo">
+                            تم اختيار 0 أعمدة
+                        </div>
+                    </div>
+                    
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab('scatter')">
+                            <i class="fas fa-chart-scatter"></i>
+                            مخططات التشتت
+                        </div>
+                        <div class="tab" onclick="switchTab('correlation')">
+                            <i class="fas fa-th"></i>
+                            مصفوفة الارتباط
+                        </div>
+                        <div class="tab" onclick="switchTab('insights')">
+                            <i class="fas fa-lightbulb"></i>
+                            الرؤى والاستنتاجات
+                        </div>
+                    </div>
+                    
+                    <!-- Scatter Plots -->
+                    <div id="scatterTab">
+                        <div class="charts-grid" id="scatterCharts"></div>
+                    </div>
+                    
+                    <!-- Correlation Matrix -->
+                    <div id="correlationTab" style="display: none;">
+                        <div class="correlation-matrix">
+                            <div class="chart-card">
+                                <div class="chart-title">
+                                    <i class="fas fa-th"></i>
+                                    مصفوفة الارتباط بين الأعمدة
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="correlationChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Insights -->
+                    <div id="insightsTab" style="display: none;">
+                        <div class="insights-grid" id="insightsGrid"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -652,7 +764,7 @@
         let selectedFile = null;
         let selectedColumns = new Set();
         let chartInstances = [];
-        let spreadsheetData = null;
+        let currentUser = null;
         
         // Initialize Google API
         function gapiLoaded() {
@@ -668,8 +780,13 @@
                 // Check if user is already logged in
                 const savedToken = localStorage.getItem("gdrive_token");
                 if (savedToken) {
-                    gapi.client.setToken({ access_token: savedToken });
-                    afterLogin();
+                    try {
+                        gapi.client.setToken({ access_token: savedToken });
+                        await afterLogin();
+                    } catch (error) {
+                        console.error("Token validation failed:", error);
+                        localStorage.removeItem("gdrive_token");
+                    }
                 }
             });
         }
@@ -698,42 +815,95 @@
         
         // After successful login
         async function afterLogin() {
-            // Hide login button, show user info
-            document.getElementById("loginBtn").style.display = "none";
-            document.getElementById("userInfo").style.display = "block";
-            document.getElementById("fileSection").style.display = "block";
-            document.getElementById("initialState").style.display = "none";
+            showLoading();
             
-            // Get user info
             try {
+                // Get user info
                 const userInfo = await gapi.client.drive.about.get({
                     fields: "user"
                 });
-                const userName = userInfo.result.user.displayName;
-                const userEmail = userInfo.result.user.emailAddress;
                 
-                document.getElementById("userAvatar").textContent = userName.charAt(0);
-                document.getElementById("userName").textContent = userName;
-                document.getElementById("userName").title = userEmail;
+                currentUser = userInfo.result.user;
+                
+                // Update UI
+                document.getElementById("loginPage").style.display = "none";
+                document.getElementById("mainApp").style.display = "block";
+                
+                document.getElementById("userName").textContent = currentUser.displayName;
+                document.getElementById("userEmail").textContent = currentUser.emailAddress;
+                document.getElementById("userAvatar").textContent = currentUser.displayName.charAt(0).toUpperCase();
+                
+                // Load spreadsheets
+                await loadSpreadsheets();
+                
+                hideLoading();
                 
             } catch (error) {
-                console.error("Error fetching user info:", error);
+                console.error("Error after login:", error);
+                alert("حدث خطأ أثناء تسجيل الدخول. الرجاء المحاولة مرة أخرى.");
+                signOut();
             }
-            
-            // Load spreadsheets
-            loadSpreadsheets();
         }
         
-        // Logout function
-        document.getElementById("logoutBtn").onclick = function() {
+        // Sign Out function
+        document.getElementById("logoutBtn").onclick = signOut;
+        
+        function signOut() {
+            // Revoke Google token
             const token = gapi.client.getToken();
             if (token) {
                 google.accounts.oauth2.revoke(token.access_token);
                 gapi.client.setToken("");
             }
+            
+            // Clear local storage
             localStorage.removeItem("gdrive_token");
-            location.reload();
-        };
+            
+            // Reset application state
+            resetApp();
+            
+            // Show login page
+            document.getElementById("loginPage").style.display = "block";
+            document.getElementById("mainApp").style.display = "none";
+            
+            // Show success message
+            showNotification("تم تسجيل الخروج بنجاح", "success");
+        }
+        
+        // Reset application state
+        function resetApp() {
+            // Destroy all charts
+            chartInstances.forEach(chart => chart.destroy());
+            chartInstances = [];
+            
+            // Reset variables
+            selectedFile = null;
+            selectedColumns.clear();
+            currentUser = null;
+            
+            // Reset UI
+            document.getElementById("fileList").innerHTML = `
+                <div class="loading" style="padding: 2rem;">
+                    <div class="spinner"></div>
+                    <p>جاري تحميل الملفات...</p>
+                </div>
+            `;
+            
+            document.getElementById("columnsList").innerHTML = `
+                <div class="empty-state" style="padding: 2rem;">
+                    <i class="fas fa-columns"></i>
+                    <p>اختر ملفًا أولاً لعرض الأعمدة</p>
+                </div>
+            `;
+            
+            document.getElementById("analysisResults").style.display = "none";
+            document.getElementById("initialState").style.display = "block";
+            document.getElementById("analyzeBtn").disabled = true;
+            
+            document.getElementById("userName").textContent = "المستخدم";
+            document.getElementById("userEmail").textContent = "user@example.com";
+            document.getElementById("userAvatar").textContent = "م";
+        }
         
         // Load spreadsheets from Google Drive
         async function loadSpreadsheets() {
@@ -744,7 +914,7 @@
                     q: "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false",
                     fields: "files(id, name, modifiedTime, size)",
                     orderBy: "modifiedTime desc",
-                    pageSize: 50
+                    pageSize: 100
                 });
                 
                 const files = response.result.files || [];
@@ -752,7 +922,15 @@
                 
             } catch (error) {
                 console.error("Error loading spreadsheets:", error);
-                alert("حدث خطأ في تحميل الملفات. الرجاء المحاولة مرة أخرى.");
+                
+                if (error.status === 401) {
+                    // Token expired
+                    showNotification("انتهت صلاحية الجلسة، الرجاء تسجيل الدخول مرة أخرى", "error");
+                    signOut();
+                } else {
+                    showNotification("حدث خطأ في تحميل الملفات", "error");
+                }
+                
                 hideLoading();
             }
         }
@@ -804,7 +982,6 @@
             element.classList.add("selected");
             
             showLoading();
-            document.getElementById("columnsSection").style.display = "block";
             
             try {
                 // Get spreadsheet data
@@ -825,7 +1002,7 @@
                 const values = rangeResponse.result.values || [];
                 
                 if (values.length === 0) {
-                    alert("الملف المحدد فارغ. الرجاء اختيار ملف آخر.");
+                    showNotification("الملف المحدد فارغ", "warning");
                     hideLoading();
                     return;
                 }
@@ -841,9 +1018,12 @@
                 // Display columns
                 displayColumns();
                 
+                // Show success message
+                showNotification(`تم تحميل الملف: ${fileName}`, "success");
+                
             } catch (error) {
                 console.error("Error loading file:", error);
-                alert("حدث خطأ في تحميل الملف. الرجاء المحاولة مرة أخرى.");
+                showNotification("حدث خطأ في تحميل الملف", "error");
                 hideLoading();
             }
         }
@@ -908,6 +1088,44 @@
             });
             
             updateAnalyzeButton();
+            showNotification("تم اختيار جميع الأعمدة", "success");
+        }
+        
+        // Clear selection
+        function clearSelection() {
+            selectedColumns.clear();
+            document.querySelectorAll(".column-item").forEach(item => {
+                item.classList.remove("selected");
+            });
+            
+            // Clear file selection
+            if (selectedFile) {
+                document.querySelectorAll(".file-item").forEach(item => {
+                    item.classList.remove("selected");
+                });
+                selectedFile = null;
+            }
+            
+            // Hide analysis results
+            document.getElementById("analysisResults").style.display = "none";
+            document.getElementById("initialState").style.display = "block";
+            
+            // Reset columns list
+            document.getElementById("columnsList").innerHTML = `
+                <div class="empty-state" style="padding: 2rem;">
+                    <i class="fas fa-columns"></i>
+                    <p>اختر ملفًا أولاً لعرض الأعمدة</p>
+                </div>
+            `;
+            
+            updateAnalyzeButton();
+            showNotification("تم مسح جميع التحديدات", "info");
+        }
+        
+        // Refresh files list
+        function refreshFiles() {
+            loadSpreadsheets();
+            showNotification("جاري تحديث قائمة الملفات...", "info");
         }
         
         // Update analyze button state
@@ -929,7 +1147,7 @@
         // Analyze relationships
         document.getElementById("analyzeBtn").onclick = async function() {
             if (selectedColumns.size < 2) {
-                alert("الرجاء اختيار عمودين على الأقل");
+                showNotification("الرجاء اختيار عمودين على الأقل", "warning");
                 return;
             }
             
@@ -954,6 +1172,7 @@
                 });
                 
                 // Show analysis results
+                document.getElementById("initialState").style.display = "none";
                 document.getElementById("analysisResults").style.display = "block";
                 document.getElementById("resultsTitle").innerHTML = `
                     <i class="fas fa-chart-line"></i>
@@ -966,10 +1185,11 @@
                 generateInsights(selectedCols, columnNames, columnData);
                 
                 hideLoading();
+                showNotification("تم تحليل العلاقات بنجاح", "success");
                 
             } catch (error) {
                 console.error("Error in analysis:", error);
-                alert("حدث خطأ أثناء التحليل");
+                showNotification("حدث خطأ أثناء التحليل", "error");
                 hideLoading();
             }
         };
@@ -1018,7 +1238,7 @@
             
             // Prepare data points
             const dataPoints = [];
-            const maxPoints = 100; // Limit points for performance
+            const maxPoints = 100;
             
             for (let i = 0; i < Math.min(columnData[col1].length, maxPoints); i++) {
                 const x = columnData[col1][i];
@@ -1351,6 +1571,47 @@
             document.getElementById("insightsTab").style.display = tabName === 'insights' ? 'block' : 'none';
         }
         
+        // Show notification
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement("div");
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'var(--secondary-color)' : 
+                           type === 'error' ? 'var(--danger-color)' : 
+                           type === 'warning' ? 'var(--accent-color)' : 
+                           'var(--primary-color)'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                animation: slideIn 0.3s ease;
+                max-width: 400px;
+            `;
+            
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                 type === 'error' ? 'exclamation-circle' : 
+                                 type === 'warning' ? 'exclamation-triangle' : 
+                                 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = "slideOut 0.3s ease";
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
         // Format date
         function formatDate(dateString) {
             const date = new Date(dateString);
@@ -1366,6 +1627,21 @@
         function hideLoading() {
             document.getElementById("loadingState").style.display = "none";
         }
+        
+        // Add CSS for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
