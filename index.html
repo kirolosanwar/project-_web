@@ -14,11 +14,15 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Chart.js for pie charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         :root {
             --primary-color: #1a73e8;
             --secondary-color: #0f9d58;
             --danger-color: #d93025;
+            --warning-color: #fbbc04;
             --light-color: #f8f9fa;
             --dark-color: #202124;
             --gray-color: #5f6368;
@@ -90,7 +94,7 @@
         
         /* Main Container */
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 2rem auto;
             padding: 0 1.5rem;
         }
@@ -159,6 +163,15 @@
             background: #0b8043;
         }
         
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e6a700;
+        }
+        
         .breadcrumb {
             display: flex;
             align-items: center;
@@ -202,6 +215,11 @@
             transform: translateY(-5px);
             box-shadow: var(--shadow-hover);
             border-color: var(--primary-color);
+        }
+        
+        .file-card.selected {
+            border-color: var(--warning-color);
+            background-color: #fffbf0;
         }
         
         .file-icon {
@@ -337,6 +355,13 @@
             align-items: center;
             gap: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        
+        .column-badge.selected {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
         }
         
         .column-index {
@@ -350,6 +375,11 @@
             justify-content: center;
             font-size: 12px;
             font-weight: bold;
+        }
+        
+        .column-badge.selected .column-index {
+            background: white;
+            color: var(--primary-color);
         }
         
         .data-table {
@@ -384,6 +414,98 @@
         
         .data-table tr:last-child td {
             border-bottom: none;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .chart-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .chart-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .chart-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .chart-controls {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .control-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .select-control {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            background: white;
+            margin-bottom: 1rem;
+        }
+        
+        .chart-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+        
+        .chart-type-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-type-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
         }
         
         /* Empty State */
@@ -422,7 +544,7 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid #f3f3f3;
+            border: 4px solid #f3f3f4;
             border-top: 4px solid var(--primary-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -454,13 +576,21 @@
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
             
-            .spreadsheet-container {
+            .spreadsheet-container, .chart-container {
                 padding: 1rem;
             }
             
             .data-table {
                 display: block;
                 overflow-x: auto;
+            }
+            
+            .chart-wrapper {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-box {
+                height: 300px;
             }
         }
     </style>
@@ -493,6 +623,10 @@
                 <i class="fas fa-arrow-left"></i> Back
             </button>
             
+            <button class="btn btn-warning" onclick="openChartView()" id="createChartBtn" style="display: none;">
+                <i class="fas fa-chart-pie"></i> Create Pie Chart
+            </button>
+            
             <button class="btn btn-danger" onclick="closeSpreadsheet()" id="closeSpreadsheetBtn" style="display: none;">
                 <i class="fas fa-times"></i> Close Spreadsheet
             </button>
@@ -508,13 +642,16 @@
         <!-- Spreadsheet View -->
         <div id="spreadsheetContainer" class="spreadsheet-container" style="display: none;"></div>
         
+        <!-- Chart View -->
+        <div id="chartContainer" class="chart-container" style="display: none;"></div>
+        
         <!-- Empty State (Initially shown) -->
         <div id="emptyState" class="empty-state">
             <i class="fas fa-cloud empty-icon"></i>
             <h2 class="empty-title">Welcome to Drive Explorer Pro</h2>
             <p class="empty-message">
                 Sign in with your Google account to browse and explore your Google Drive files. 
-                View Excel/Google Sheets files directly as interactive tables with column names.
+                View Excel/Google Sheets files directly as interactive tables and create pie charts from your data.
             </p>
             <button class="btn btn-primary" id="emptyLoginBtn" style="margin-top: 1.5rem;">
                 <i class="fas fa-sign-in-alt"></i> Sign In to Get Started
@@ -532,6 +669,10 @@
         let folderNames = ["My Drive"];
         let tokenClient;
         let currentSpreadsheet = null;
+        let currentSpreadsheetData = null;
+        let selectedSpreadsheet = null;
+        let selectedColumns = [];
+        let currentChart = null;
         
         // Initialize Google API
         function gapiLoaded() {
@@ -661,6 +802,11 @@
                     </div>
                 `;
                 
+                // Reset selection
+                selectedSpreadsheet = null;
+                selectedColumns = [];
+                document.getElementById("createChartBtn").style.display = "none";
+                
                 const res = await gapi.client.drive.files.list({
                     q: `'${folderId}' in parents and trashed = false`,
                     fields: "files(id, name, mimeType, modifiedTime, size)",
@@ -697,8 +843,9 @@
                     createFileCard(file, false);
                 });
                 
-                // Hide spreadsheet view
+                // Hide spreadsheet view and chart view
                 document.getElementById("spreadsheetContainer").style.display = "none";
+                document.getElementById("chartContainer").style.display = "none";
                 document.getElementById("closeSpreadsheetBtn").style.display = "none";
                 
             } catch (err) {
@@ -722,7 +869,8 @@
             const isSpreadsheet = file.mimeType === "application/vnd.google-apps.spreadsheet";
             
             const card = document.createElement("div");
-            card.className = "file-card";
+            card.className = `file-card ${selectedSpreadsheet && selectedSpreadsheet.id === file.id ? 'selected' : ''}`;
+            card.dataset.fileId = file.id;
             
             // File icon
             const icon = document.createElement("div");
@@ -767,6 +915,16 @@
                     loadFolder(file.id);
                 };
             } else if (isSpreadsheet) {
+                // Add select spreadsheet button
+                const selectBtn = document.createElement("button");
+                selectBtn.className = "action-btn btn-warning";
+                selectBtn.innerHTML = '<i class="fas fa-check"></i> Select';
+                selectBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    selectSpreadsheetForChart(file);
+                };
+                actions.appendChild(selectBtn);
+                
                 // Add view spreadsheet button
                 const viewBtn = document.createElement("button");
                 viewBtn.className = "action-btn btn-success";
@@ -802,7 +960,380 @@
             container.appendChild(card);
         }
         
-        // Load and display spreadsheet
+        // Select spreadsheet for chart creation
+        function selectSpreadsheetForChart(file) {
+            // Update UI to show selected spreadsheet
+            document.querySelectorAll('.file-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            const selectedCard = document.querySelector(`.file-card[data-file-id="${file.id}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+            
+            selectedSpreadsheet = {
+                id: file.id,
+                name: file.name
+            };
+            
+            // Show create chart button
+            document.getElementById("createChartBtn").style.display = "inline-block";
+            
+            // Load spreadsheet data for chart selection
+            loadSpreadsheetForChart(file.id, file.name);
+        }
+        
+        // Load spreadsheet for chart (without displaying the table)
+        async function loadSpreadsheetForChart(spreadsheetId, spreadsheetName) {
+            try {
+                // Get spreadsheet info
+                const spreadsheet = await gapi.client.sheets.spreadsheets.get({
+                    spreadsheetId: spreadsheetId
+                });
+                
+                // Get first sheet data
+                const firstSheet = spreadsheet.result.sheets[0].properties.title;
+                const rangeResponse = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: spreadsheetId,
+                    range: firstSheet
+                });
+                
+                const values = rangeResponse.result.values || [];
+                
+                if (values.length === 0) {
+                    alert("The selected spreadsheet is empty.");
+                    return;
+                }
+                
+                // Store spreadsheet data for chart creation
+                currentSpreadsheetData = {
+                    id: spreadsheetId,
+                    name: spreadsheetName,
+                    sheetName: firstSheet,
+                    columnNames: values[0] || [],
+                    data: values.slice(1) || []
+                };
+                
+                console.log("Spreadsheet data loaded for chart creation:", currentSpreadsheetData);
+                
+            } catch (err) {
+                console.error("Error loading spreadsheet for chart:", err);
+                alert("Error loading spreadsheet data. Please try again.");
+            }
+        }
+        
+        // Open chart view
+        async function openChartView() {
+            if (!selectedSpreadsheet || !currentSpreadsheetData) {
+                alert("Please select a spreadsheet first.");
+                return;
+            }
+            
+            if (currentSpreadsheetData.data.length === 0) {
+                alert("The selected spreadsheet is empty.");
+                return;
+            }
+            
+            // Hide files grid and show chart container
+            document.getElementById("files").style.display = "none";
+            document.getElementById("spreadsheetContainer").style.display = "none";
+            document.getElementById("chartContainer").style.display = "block";
+            document.getElementById("closeSpreadsheetBtn").style.display = "inline-block";
+            
+            // Display chart interface
+            renderChartInterface();
+        }
+        
+        // Render chart interface
+        function renderChartInterface() {
+            const container = document.getElementById("chartContainer");
+            
+            let html = `
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-pie" style="color: var(--warning-color); font-size: 24px;"></i>
+                        <div>
+                            <h2>Create Pie Chart</h2>
+                            <p style="color: var(--gray-color); font-size: 14px;">Spreadsheet: ${selectedSpreadsheet.name}</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="backToSpreadsheetView()">
+                        <i class="fas fa-arrow-left"></i> Back to Spreadsheet
+                    </button>
+                </div>
+                
+                <div class="chart-controls">
+                    <div class="control-group">
+                        <label class="control-label">Select Category Column (Labels)</label>
+                        <select class="select-control" id="categoryColumn">
+                            <option value="">-- Select a column for pie chart labels --</option>
+            `;
+            
+            // Add column options
+            currentSpreadsheetData.columnNames.forEach((colName, index) => {
+                html += `<option value="${index}">${index + 1}. ${colName || `Column ${index + 1}`}</option>`;
+            });
+            
+            html += `
+                        </select>
+                        
+                        <label class="control-label">Select Value Column (Data)</label>
+                        <select class="select-control" id="valueColumn">
+                            <option value="">-- Select a column for pie chart values --</option>
+            `;
+            
+            // Add column options
+            currentSpreadsheetData.columnNames.forEach((colName, index) => {
+                html += `<option value="${index}">${index + 1}. ${colName || `Column ${index + 1}`}</option>`;
+            });
+            
+            html += `
+                        </select>
+                        
+                        <label class="control-label">Chart Title</label>
+                        <input type="text" class="select-control" id="chartTitle" placeholder="Enter chart title" value="Pie Chart from ${selectedSpreadsheet.name}">
+                        
+                        <div class="chart-type-selector">
+                            <button class="chart-type-btn active" onclick="changeChartType('pie')">
+                                <i class="fas fa-chart-pie"></i> Pie Chart
+                            </button>
+                            <button class="chart-type-btn" onclick="changeChartType('doughnut')">
+                                <i class="fas fa-chart-pie"></i> Doughnut Chart
+                            </button>
+                            <button class="chart-type-btn" onclick="changeChartType('bar')">
+                                <i class="fas fa-chart-bar"></i> Bar Chart
+                            </button>
+                        </div>
+                        
+                        <button class="btn btn-warning" style="margin-top: 1rem;" onclick="generateChart()">
+                            <i class="fas fa-chart-pie"></i> Generate Chart
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="chart-wrapper">
+                    <div class="chart-box">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <div id="chartDataPreview" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--gray-color);">
+                            <div style="text-align: center;">
+                                <i class="fas fa-chart-pie" style="font-size: 64px; margin-bottom: 1rem;"></i>
+                                <p>Chart will appear here after generating</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // Change chart type
+        function changeChartType(type) {
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            
+            // Update chart if it exists
+            if (currentChart) {
+                currentChart.config.type = type;
+                currentChart.update();
+            }
+        }
+        
+        // Generate chart based on selected columns
+        function generateChart() {
+            const categoryColIndex = parseInt(document.getElementById("categoryColumn").value);
+            const valueColIndex = parseInt(document.getElementById("valueColumn").value);
+            const chartTitle = document.getElementById("chartTitle").value || "Pie Chart";
+            
+            if (isNaN(categoryColIndex) || isNaN(valueColIndex)) {
+                alert("Please select both category and value columns.");
+                return;
+            }
+            
+            if (categoryColIndex === valueColIndex) {
+                alert("Category and value columns must be different.");
+                return;
+            }
+            
+            // Extract data for chart
+            const labels = [];
+            const data = [];
+            
+            // Get unique categories and sum values
+            const categoryMap = {};
+            
+            currentSpreadsheetData.data.forEach(row => {
+                if (row[categoryColIndex] !== undefined && row[valueColIndex] !== undefined) {
+                    const category = row[categoryColIndex] || "Unknown";
+                    const value = parseFloat(row[valueColIndex]) || 0;
+                    
+                    if (categoryMap[category]) {
+                        categoryMap[category] += value;
+                    } else {
+                        categoryMap[category] = value;
+                    }
+                }
+            });
+            
+            // Convert to arrays for chart
+            for (const [category, value] of Object.entries(categoryMap)) {
+                labels.push(category);
+                data.push(value);
+            }
+            
+            if (labels.length === 0) {
+                alert("No valid data found for the selected columns.");
+                return;
+            }
+            
+            // Get selected chart type
+            const chartType = document.querySelector('.chart-type-btn.active').getAttribute('onclick').includes('pie') ? 'pie' :
+                             document.querySelector('.chart-type-btn.active').getAttribute('onclick').includes('doughnut') ? 'doughnut' : 'bar';
+            
+            // Generate colors for chart
+            const backgroundColors = generateColors(labels.length);
+            
+            // Destroy previous chart if exists
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            // Get canvas context
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            
+            // Create new chart
+            currentChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: currentSpreadsheetData.columnNames[valueColIndex] || 'Values',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: backgroundColors.map(color => color.replace('0.8', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: chartTitle,
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update data preview
+            updateDataPreview(labels, data, categoryColIndex, valueColIndex);
+        }
+        
+        // Generate colors for chart
+        function generateColors(count) {
+            const colors = [];
+            const baseColors = [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)',
+                'rgba(83, 102, 255, 0.8)',
+                'rgba(40, 159, 64, 0.8)',
+                'rgba(210, 199, 199, 0.8)'
+            ];
+            
+            for (let i = 0; i < count; i++) {
+                colors.push(baseColors[i % baseColors.length]);
+            }
+            
+            return colors;
+        }
+        
+        // Update data preview
+        function updateDataPreview(labels, data, categoryColIndex, valueColIndex) {
+            const preview = document.getElementById('chartDataPreview');
+            
+            let html = `
+                <div style="width: 100%;">
+                    <h3 style="margin-bottom: 1rem; color: var(--dark-color);">Chart Data Preview</h3>
+                    <div style="overflow-y: auto; max-height: 320px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--primary-color); color: white;">
+                                    <th style="padding: 0.75rem; text-align: left;">${currentSpreadsheetData.columnNames[categoryColIndex] || 'Category'}</th>
+                                    <th style="padding: 0.75rem; text-align: left;">${currentSpreadsheetData.columnNames[valueColIndex] || 'Value'}</th>
+                                    <th style="padding: 0.75rem; text-align: left;">Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            const total = data.reduce((a, b) => a + b, 0);
+            
+            labels.forEach((label, index) => {
+                const value = data[index];
+                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem;">${label}</td>
+                        <td style="padding: 0.75rem;">${value}</td>
+                        <td style="padding: 0.75rem;">${percentage}%</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8f9fa; font-weight: bold;">
+                                    <td style="padding: 0.75rem;">Total</td>
+                                    <td style="padding: 0.75rem;">${total}</td>
+                                    <td style="padding: 0.75rem;">100%</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            preview.innerHTML = html;
+        }
+        
+        // Back to spreadsheet view from chart
+        function backToSpreadsheetView() {
+            document.getElementById("chartContainer").style.display = "none";
+            document.getElementById("files").style.display = "grid";
+        }
+        
+        // Load and display spreadsheet (original function)
         async function loadSpreadsheet(spreadsheetId, spreadsheetName) {
             try {
                 document.getElementById("files").innerHTML = `
@@ -822,6 +1353,9 @@
                         <p>Loading "${spreadsheetName}"...</p>
                     </div>
                 `;
+                
+                // Hide chart container
+                document.getElementById("chartContainer").style.display = "none";
                 
                 // Get spreadsheet info
                 const spreadsheet = await gapi.client.sheets.spreadsheets.get({
@@ -885,6 +1419,9 @@
                                     <p style="color: var(--gray-color); font-size: 14px;">Sheet: ${sheetName}</p>
                                 </div>
                             </div>
+                            <button class="btn btn-warning" onclick="selectCurrentForChart()">
+                                <i class="fas fa-chart-pie"></i> Create Chart from this Sheet
+                            </button>
                         </div>
                         <div class="empty-state">
                             <i class="fas fa-table empty-icon"></i>
@@ -909,23 +1446,27 @@
                             </div>
                         </div>
                         <div>
-                            <span class="file-type" style="background: var(--secondary-color); color: white;">
+                            <button class="btn btn-warning" onclick="selectCurrentForChart()">
+                                <i class="fas fa-chart-pie"></i> Create Chart from this Sheet
+                            </button>
+                            <span class="file-type" style="background: var(--secondary-color); color: white; margin-left: 10px;">
                                 ${values.length - 1} rows, ${columnNames.length} columns
                             </span>
                         </div>
                     </div>
                 `;
                 
-                // Display column names
+                // Display column names with selection capability
                 html += `
                     <div class="columns-header">
-                        <h3 class="columns-title">Column Names</h3>
-                        <div class="columns-list">
+                        <h3 class="columns-title">Column Names (Click to select for chart)</h3>
+                        <div class="columns-list" id="columnSelectionList">
                 `;
                 
                 columnNames.forEach((colName, index) => {
+                    const isSelected = selectedColumns.includes(index);
                     html += `
-                        <div class="column-badge">
+                        <div class="column-badge ${isSelected ? 'selected' : ''}" onclick="toggleColumnSelection(${index})" title="Click to select for chart">
                             <span class="column-index">${index + 1}</span>
                             <span>${colName || `Column ${index + 1}`}</span>
                         </div>
@@ -977,6 +1518,84 @@
             }
         }
         
+        // Select current spreadsheet for chart from spreadsheet view
+        function selectCurrentForChart() {
+            if (!currentSpreadsheet) return;
+            
+            selectedSpreadsheet = {
+                id: currentSpreadsheet.id,
+                name: currentSpreadsheet.name
+            };
+            
+            // Load spreadsheet data for chart
+            loadSpreadsheetForChart(currentSpreadsheet.id, currentSpreadsheet.name);
+            
+            // Open chart view
+            openChartView();
+        }
+        
+        // Toggle column selection in spreadsheet view
+        function toggleColumnSelection(columnIndex) {
+            const index = selectedColumns.indexOf(columnIndex);
+            if (index === -1) {
+                if (selectedColumns.length < 2) {
+                    selectedColumns.push(columnIndex);
+                } else {
+                    // Replace the oldest selection
+                    selectedColumns.shift();
+                    selectedColumns.push(columnIndex);
+                }
+            } else {
+                selectedColumns.splice(index, 1);
+            }
+            
+            // Update UI
+            const badges = document.querySelectorAll('.column-badge');
+            badges.forEach((badge, idx) => {
+                if (selectedColumns.includes(idx)) {
+                    badge.classList.add('selected');
+                } else {
+                    badge.classList.remove('selected');
+                }
+            });
+            
+            // If two columns are selected, show a quick create button
+            if (selectedColumns.length === 2) {
+                // Check if quick create button already exists
+                let quickCreateBtn = document.getElementById('quickCreateChartBtn');
+                if (!quickCreateBtn) {
+                    quickCreateBtn = document.createElement('button');
+                    quickCreateBtn.id = 'quickCreateChartBtn';
+                    quickCreateBtn.className = 'btn btn-warning';
+                    quickCreateBtn.innerHTML = '<i class="fas fa-chart-pie"></i> Create Chart from Selected Columns';
+                    quickCreateBtn.onclick = createChartFromSelectedColumns;
+                    
+                    const columnsHeader = document.querySelector('.columns-header');
+                    columnsHeader.appendChild(quickCreateBtn);
+                }
+            }
+        }
+        
+        // Create chart from selected columns in spreadsheet view
+        function createChartFromSelectedColumns() {
+            if (selectedColumns.length !== 2) {
+                alert("Please select exactly 2 columns for the chart.");
+                return;
+            }
+            
+            // Set the selected columns in the chart interface
+            selectCurrentForChart();
+            
+            // Small delay to ensure data is loaded
+            setTimeout(() => {
+                if (document.getElementById('categoryColumn') && document.getElementById('valueColumn')) {
+                    document.getElementById('categoryColumn').value = selectedColumns[0];
+                    document.getElementById('valueColumn').value = selectedColumns[1];
+                    generateChart();
+                }
+            }, 500);
+        }
+        
         // Create sheet tabs
         function createSheetTabs() {
             if (!currentSpreadsheet || currentSpreadsheet.sheets.length <= 1) return;
@@ -1011,8 +1630,11 @@
         // Close spreadsheet view
         function closeSpreadsheet() {
             document.getElementById("spreadsheetContainer").style.display = "none";
+            document.getElementById("chartContainer").style.display = "none";
             document.getElementById("closeSpreadsheetBtn").style.display = "none";
+            document.getElementById("files").style.display = "grid";
             currentSpreadsheet = null;
+            currentSpreadsheetData = null;
             
             // Reload current folder
             loadFolder(folderStack[folderStack.length - 1]);
