@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Excel Pie Chart from Google Drive</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Drive Data Visualization</title>
 
-<!-- Google Auth -->
+<!-- Google APIs -->
 <script src="https://accounts.google.com/gsi/client"></script>
 <script src="https://apis.google.com/js/api.js"></script>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- CSV Parser -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
 body {
@@ -18,205 +20,107 @@ body {
     background: #f4f6f8;
     padding: 20px;
 }
-
-button, select {
-    padding: 10px;
+button {
+    padding: 10px 15px;
     margin: 5px;
-}
-
-#files {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.file {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,.1);
 }
-
-.file:hover {
-    background: #eef3ff;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
+#files {
     margin-top: 20px;
 }
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-
-th {
-    background: #f1f1f1;
-}
-
-.chart-box {
+canvas {
     background: white;
     padding: 20px;
-    border-radius: 8px;
-    margin-top: 30px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Excel (.xlsx) → Pie Chart (Google Drive)</h2>
+<h2>Google Drive Data Visualization</h2>
 
-<button onclick="login()">Sign In with Google</button>
+<button onclick="login()">Login with Google</button>
+<button onclick="loadFiles()">Load Files</button>
 
 <div id="files"></div>
 
-<div id="content"></div>
+<canvas id="chart" width="600" height="300"></canvas>
 
 <script>
-const CLIENT_ID = "PUT_YOUR_CLIENT_ID_HERE";
+const CLIENT_ID = "YOUR_CLIENT_ID";
+const API_KEY = "YOUR_API_KEY";
+
 const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 
 let tokenClient;
-let pieChart;
+let gapiInited = false;
+let gisInited = false;
 
-// Load GAPI
+// Load Google API
 gapi.load("client", async () => {
     await gapi.client.init({
-        discoveryDocs: [
-            "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"
-        ]
+        apiKey: API_KEY,
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
     });
+    gapiInited = true;
 });
 
-// Login
+// OAuth
+tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: () => {}
+});
+
 function login() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: token => {
-            gapi.client.setToken(token);
-            loadExcelFiles();
-        }
-    });
-    tokenClient.requestAccessToken();
+    tokenClient.requestAccessToken({ prompt: "consent" });
 }
 
-// Load Excel files
-async function loadExcelFiles() {
+// Load files from Drive
+async function loadFiles() {
     const res = await gapi.client.drive.files.list({
-        q: "mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'",
-        fields: "files(id,name)",
-        pageSize: 50
+        q: "mimeType='text/csv'",
+        fields: "files(id, name)"
     });
 
     const filesDiv = document.getElementById("files");
     filesDiv.innerHTML = "";
 
     res.result.files.forEach(file => {
-        const div = document.createElement("div");
-        div.className = "file";
-        div.innerHTML = "📄 " + file.name;
-        div.onclick = () => loadExcelCSV(file.id, file.name);
-        filesDiv.appendChild(div);
+        const btn = document.createElement("button");
+        btn.innerText = file.name;
+        btn.onclick = () => loadCSV(file.id);
+        filesDiv.appendChild(btn);
     });
 }
 
-// Export Excel as CSV
-async function loadExcelCSV(fileId, fileName) {
-    const res = await gapi.client.drive.files.export({
+// Load CSV file
+async function loadCSV(fileId) {
+    const res = await gapi.client.drive.files.get({
         fileId: fileId,
-        mimeType: "text/csv"
+        alt: "media"
     });
 
-    const rows = res.body
-        .trim()
-        .split("\n")
-        .map(r => r.split(","));
-
-    const headers = rows[0];
-    const dataRows = rows.slice(1);
-
-    let html = `<h3>${fileName}</h3>`;
-
-    // Chart controls
-    html += `
-    <div class="chart-box">
-        <select id="labelCol">
-            <option value="">Label Column</option>
-            ${headers.map((h,i)=>`<option value="${i}">${h}</option>`).join("")}
-        </select>
-
-        <select id="valueCol">
-            <option value="">Value Column</option>
-            ${headers.map((h,i)=>`<option value="${i}">${h}</option>`).join("")}
-        </select>
-
-        <button onclick="drawChart()">Draw Pie Chart</button>
-
-        <canvas id="pieCanvas"></canvas>
-    </div>
-    `;
-
-    // Table
-    html += "<table><tr>";
-    headers.forEach(h => html += `<th>${h}</th>`);
-    html += "</tr>";
-
-    dataRows.forEach(r => {
-        html += "<tr>";
-        headers.forEach((_,i)=> html += `<td>${r[i] || ""}</td>`);
-        html += "</tr>";
-    });
-
-    html += "</table>";
-
-    document.getElementById("content").innerHTML = html;
-}
-
-// Draw Pie Chart
-function drawChart() {
-    const labelIndex = document.getElementById("labelCol").value;
-    const valueIndex = document.getElementById("valueCol").value;
-
-    if (labelIndex === "" || valueIndex === "") {
-        alert("Select both columns");
-        return;
-    }
-
-    const rows = document.querySelectorAll("table tr");
-    let labels = [];
-    let values = [];
-
-    rows.forEach((row, i) => {
-        if (i === 0) return;
-        const cells = row.querySelectorAll("td");
-        const value = parseFloat(cells[valueIndex]?.innerText);
-
-        if (!isNaN(value)) {
-            labels.push(cells[labelIndex].innerText);
-            values.push(value);
+    Papa.parse(res.body, {
+        header: true,
+        complete: function(results) {
+            drawChart(results.data);
         }
     });
+}
 
-    const ctx = document.getElementById("pieCanvas");
+// Draw Chart
+function drawChart(data) {
+    const labels = data.map(row => row[Object.keys(row)[0]]);
+    const values = data.map(row => Number(row[Object.keys(row)[1]]));
 
-    if (pieChart) pieChart.destroy();
-
-    pieChart = new Chart(ctx, {
-        type: "pie",
+    new Chart(document.getElementById("chart"), {
+        type: "bar",
         data: {
             labels: labels,
             datasets: [{
-                data: values,
-                backgroundColor: labels.map(() =>
-                    `hsl(${Math.random()*360},70%,60%)`
-                )
+                label: "Values",
+                data: values
             }]
         }
     });
